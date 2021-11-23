@@ -4,7 +4,7 @@
 #include "sr_protocol.h"
 #include "sr_utils.h"
 
-
+/* Returns the check some in network byte order */
 uint16_t cksum (const void *_data, int len) {
   const uint8_t *data = _data;
   uint32_t sum;
@@ -18,18 +18,6 @@ uint16_t cksum (const void *_data, int len) {
   sum = htons (~sum);
   return sum ? sum : 0xffff;
 }
-
-
-uint16_t ethertype(uint8_t *buf) {
-  sr_ethernet_hdr_t *ehdr = (sr_ethernet_hdr_t *)buf;
-  return ntohs(ehdr->ether_type);
-}
-
-uint8_t ip_protocol(uint8_t *buf) {
-  sr_ip_hdr_t *iphdr = (sr_ip_hdr_t *)(buf);
-  return iphdr->ip_p;
-}
-
 
 /* Prints out formatted Ethernet address, e.g. 00:11:22:33:44:55 */
 void print_addr_eth(uint8_t *addr) {
@@ -121,7 +109,7 @@ void print_hdr_icmp(uint8_t *buf) {
 
 /* Prints out fields in ARP header */
 void print_hdr_arp(uint8_t *buf) {
-  sr_arp_hdr_t *arp_hdr = (sr_arp_hdr_t *)(buf);
+  sr_arp_packet_t *arp_hdr = (sr_arp_packet_t *)(buf);
   fprintf(stderr, "ARP header\n");
   fprintf(stderr, "\thardware type: %d\n", ntohs(arp_hdr->ar_hrd));
   fprintf(stderr, "\tprotocol type: %d\n", ntohs(arp_hdr->ar_pro));
@@ -139,47 +127,3 @@ void print_hdr_arp(uint8_t *buf) {
   fprintf(stderr, "\ttarget ip address: ");
   print_addr_ip_int(ntohl(arp_hdr->ar_tip));
 }
-
-/* Prints out all possible headers, starting from Ethernet */
-void print_hdrs(uint8_t *buf, uint32_t length) {
-
-  /* Ethernet */
-  int minlength = sizeof(sr_ethernet_hdr_t);
-  if (length < minlength) {
-    fprintf(stderr, "Failed to print ETHERNET header, insufficient length\n");
-    return;
-  }
-
-  uint16_t ethtype = ethertype(buf);
-  print_hdr_eth(buf);
-
-  if (ethtype == ethertype_ip) { /* IP */
-    minlength += sizeof(sr_ip_hdr_t);
-    if (length < minlength) {
-      fprintf(stderr, "Failed to print IP header, insufficient length\n");
-      return;
-    }
-
-    print_hdr_ip(buf + sizeof(sr_ethernet_hdr_t));
-    uint8_t ip_proto = ip_protocol(buf + sizeof(sr_ethernet_hdr_t));
-
-    if (ip_proto == ip_protocol_icmp) { /* ICMP */
-      minlength += sizeof(sr_icmp_hdr_t);
-      if (length < minlength)
-        fprintf(stderr, "Failed to print ICMP header, insufficient length\n");
-      else
-        print_hdr_icmp(buf + sizeof(sr_ethernet_hdr_t) + sizeof(sr_ip_hdr_t));
-    }
-  }
-  else if (ethtype == ethertype_arp) { /* ARP */
-    minlength += sizeof(sr_arp_hdr_t);
-    if (length < minlength)
-      fprintf(stderr, "Failed to print ARP header, insufficient length\n");
-    else
-      print_hdr_arp(buf + sizeof(sr_ethernet_hdr_t));
-  }
-  else {
-    fprintf(stderr, "Unrecognized Ethernet Type: %d\n", ethtype);
-  }
-}
-

@@ -1,6 +1,7 @@
 #include <netinet/in.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <assert.h>
 #include <time.h>
 #include <unistd.h>
 #include <pthread.h>
@@ -10,79 +11,78 @@
 #include "sr_router.h"
 #include "sr_if.h"
 #include "sr_protocol.h"
+#include "sr_utils.h"
 
-void handle_arpreq(struct sr_instance *sr, struct sr_arpreq *req);
+/* Local function declarations*/
+static void sr_handle_arpreq_queue(struct sr_instance *sr,
+                struct sr_arpreq* req);
+static void sr_arpcache_sweepreqs(struct sr_instance *sr);
 
-/* 
-  This function gets called every second. For each request sent out, we keep
-  checking whether we should resend an request or destroy the arp request.
-  See the comments in the header file for an idea of what it should look like.
-*/
-void sr_arpcache_sweepreqs(struct sr_instance *sr) { 
-    /* Fill this in */
-    struct sr_arpreq *req;
-    for (req=sr->cache.requests; req != NULL; req=req->next) {
-        handle_arpreq(sr, req);
+/*---------------------------------------------------------------------
+ * Method: sr_arpcache_sweepreqs
+ * Input: struct sr_instance *sr
+ * Output: void
+ * Scope: Local
+ *
+ * This function gets called every second. For each request sent out,
+ * we keep checking whether we should resend an request or destroy the
+ * arp request.
+ *---------------------------------------------------------------------*/
+void sr_arpcache_sweepreqs(struct sr_instance *sr) {
+    /*Requires*/
+    assert(sr);
+
+    /* Loop through each request in the request queue*/
+    sr_arpreq_t* req = (sr->cache).requests;
+    while(req) {
+        sr_handle_arpreq_queue(sr, req);
+        req = req->next;
     }
 }
 
-void handle_arpreq(struct sr_instance *sr, struct sr_arpreq *req) {
-    time_t curtime = time(NULL);
-    if (difftime(curtime, req->sent) > 1.0) {
-        if (req->times_sent >= 5) {
-            /* send icmp host unreachable to source addr of all pkts waiting
-               on this request  */
-            struct sr_packet *pkt;
-            for (pkt=req->packets; pkt != NULL; pkt=pkt->next) {
-                sr_ip_hdr_t *reply_ip_hdr = (sr_ip_hdr_t *)((pkt->buf + sizeof(sr_ethernet_hdr_t)));
-                uint32_t ip_addr = reply_ip_hdr->ip_src;
-                char *iname = get_interface_by_LPM(sr, ip_addr);
-                struct sr_if *oif = sr_get_interface(sr, iname);
-                struct sr_if *iif = sr_get_interface(sr, pkt->iface);
-                /* construct icmp unreachable response */
-                unsigned long icmp_len = sizeof(sr_ethernet_hdr_t) + sizeof(sr_ip_hdr_t) + sizeof(sr_icmp_t3_hdr_t);
-                uint8_t *reply = construct_icmp_header(pkt->buf, iif, 3, 1, icmp_len);
-                construct_eth_header(reply,((sr_ethernet_hdr_t *) pkt->buf)->ether_shost, oif->addr, ethertype_ip);
-                fprintf(stdout, "sending ICMP (Type 3, Code 1) unreachable\n");
-                sr_send_packet(sr, reply, icmp_len, iname);
+/*---------------------------------------------------------------------
+ * Method: sr_handle_arpreq_queue
+ * Input: struct sr_instance *sr, struct sr_arpreq* req
+ * Output: void
+ * Scope: Local
+ *
+ * This function gets called by sr)arpcache_sweepreqs for every request
+ * queue associated with the arp cache.  It checks entry to see if
+ * waiting time has been greater than a set time, if so it decides
+ * whether to destroy the request or send another arp packet based
+ * on the number of times an arpreq has been sent.
+ *---------------------------------------------------------------------*/
+void sr_handle_arpreq_queue(struct sr_instance *sr,
+                            struct sr_arpreq* req) {
+    /* Requires*/
+    assert(sr);
+    assert(req);
+
+    /* Only process requests that have been waiting for > 1 sec */
+    if(difftime(time(NULL), req->sent) > SR_ARPREQ_TO) {
+        /* Check if # of times sent is already 5*/
+        if (req->times_sent >= SR_ARPREQ_MAX) {
+            /* Send ICMP dest unreacheable for each packet*/
+            sr_packet_t* curr = 0;
+            curr = req->packets;
+            while (curr) {
+                sr_send_icmp(sr, curr->buf, curr->sender,
+                                icmp_type_dstunreachable, 1);
+                curr = curr->next;
             }
+            /* Destroy the req queue*/
             sr_arpreq_destroy(&(sr->cache), req);
-        }
-        else {
-            /* send arp request */
-            unsigned long len = sizeof(sr_ethernet_hdr_t) + sizeof(sr_arp_hdr_t);
-            uint8_t *arpreq = (uint8_t *)malloc(len);
-            char *iname = req->packets->iface;
-            struct sr_if *oif = sr_get_interface(sr, iname);
-            
-            /* construct ethernet header */
-            sr_ethernet_hdr_t *request_ehdr = (sr_ethernet_hdr_t *)arpreq;
-            uint8_t ether_dhost[ETHER_ADDR_LEN] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
-            memcpy(request_ehdr->ether_dhost, ether_dhost, ETHER_ADDR_LEN);
-            memcpy(request_ehdr->ether_shost, oif->addr, ETHER_ADDR_LEN);
-            request_ehdr->ether_type = htons(ethertype_arp);
-
-            /* construct arp header */
-            sr_arp_hdr_t *request_arp_hdr = (sr_arp_hdr_t *)(arpreq + sizeof(sr_ethernet_hdr_t));
-            request_arp_hdr->ar_hrd = htons(arp_hrd_ethernet);
-            request_arp_hdr->ar_pro = htons(ethertype_ip);
-            request_arp_hdr->ar_hln = ETHER_ADDR_LEN;
-            request_arp_hdr->ar_pln = 4;
-            request_arp_hdr->ar_op = htons(arp_op_request);
-            memcpy(request_arp_hdr->ar_sha, oif->addr, ETHER_ADDR_LEN);
-            request_arp_hdr->ar_sip = oif->ip;
-            uint8_t zeros[ETHER_ADDR_LEN] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-            memcpy(request_arp_hdr->ar_tha, zeros, ETHER_ADDR_LEN);
-            request_arp_hdr->ar_tip = htonl(req->ip);
-
-            sr_send_packet(sr, arpreq, len, iname);
-            free(arpreq);
+        } else {
+            /* Send another arp request for this entry */
+            char* interface = req->packets->iface;
+            sr_send_arp(sr, interface, arp_op_request,
+                            ether_broadcast_addr, req->ip);
+            /* Update last sent time and number of times sent*/
             req->sent = time(NULL);
             req->times_sent++;
         }
     }
 }
-
 /* You should not need to touch the rest of this code. */
 
 /* Checks if an IP->MAC mapping is in the cache. IP is in network byte order.
@@ -121,7 +121,8 @@ struct sr_arpreq *sr_arpcache_queuereq(struct sr_arpcache *cache,
                                        uint32_t ip,
                                        uint8_t *packet,           /* borrowed */
                                        unsigned int packet_len,
-                                       char *iface)
+                                       char *iface,
+                                       char *sender)
 {
     pthread_mutex_lock(&(cache->lock));
     
@@ -148,7 +149,9 @@ struct sr_arpreq *sr_arpcache_queuereq(struct sr_arpcache *cache,
         memcpy(new_pkt->buf, packet, packet_len);
         new_pkt->len = packet_len;
 		new_pkt->iface = (char *)malloc(sr_IFACE_NAMELEN);
+        new_pkt->sender = (char *)malloc(sr_IFACE_NAMELEN);
         strncpy(new_pkt->iface, iface, sr_IFACE_NAMELEN);
+        strncpy(new_pkt->sender, sender, sr_IFACE_NAMELEN);
         new_pkt->next = req->packets;
         req->packets = new_pkt;
     }

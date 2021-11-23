@@ -132,6 +132,42 @@ struct in_addr gw, struct in_addr mask,char* if_name)
 } /* -- sr_add_entry -- */
 
 /*---------------------------------------------------------------------
+ * Method: sr_rt_lookup
+ * Input: r_rt_t* rt, uint32_t ip
+ * Output: sr_rt_t*
+ * Scope:  Global
+ *
+ * Given a pointer for a routing table and an ip, this function returns
+ * a pointer to a route with an exact match for the network ID or NULL
+ * if a route is not found.
+ *---------------------------------------------------------------------*/
+sr_rt_t* sr_rt_lookup(sr_rt_t* rt, uint32_t ip) {
+    /* Requires*/
+    assert(rt);
+
+    sr_rt_t* lpm = NULL;
+    sr_rt_t* curr = rt;
+    uint32_t rt_prefix;
+    uint32_t ip_prefix;
+    unsigned long longest_mask = 0;
+    /* Loop through the routing table */
+    while (curr) {
+        /* Bitwise AND of each ip and route subnet mask*/
+        rt_prefix = (curr->dest).s_addr & (curr->mask).s_addr;
+        ip_prefix = ip & (curr->mask).s_addr;
+        /* If it matches and has longer prefix, set lpm and return*/
+        if (ip_prefix == rt_prefix &&
+                        ntohl((curr->mask).s_addr) > longest_mask) {
+            lpm = curr;
+            longest_mask = ntohl((curr->mask).s_addr);
+        }
+        /* Go to next entry */
+        curr = curr->next;
+    }
+    return lpm;
+}
+
+/*---------------------------------------------------------------------
  * Method:
  *
  *---------------------------------------------------------------------*/

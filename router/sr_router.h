@@ -67,15 +67,17 @@ int sr_read_from_server(struct sr_instance* );
 /* -- sr_router.c -- */
 void sr_init(struct sr_instance* );
 void sr_handlepacket(struct sr_instance* , uint8_t * , unsigned int , char* );
+void sr_send_arp(struct sr_instance* sr,
+                 char* interface/*lent*/,
+                 unsigned short arp_type,
+                 unsigned char* dest_ether_addr,
+                 uint32_t dest_ip_addr);
+void sr_send_icmp(struct sr_instance* sr,
+                  uint8_t* packet /* lent */,
+                  char* interface/* lent */,
+                  uint8_t type,
+                  uint8_t code);
 
-struct sr_if* get_interface_by_ip(struct sr_instance* sr, uint32_t tip);
-char* get_interface_by_LPM(struct sr_instance* sr, uint32_t ip_dst);
-int sanity_check(uint8_t *buf, unsigned int length);
-int handle_chksum(sr_ip_hdr_t *ip_hdr);
-void construct_eth_header(uint8_t *buf, uint8_t *dst, uint8_t *src, uint16_t type);
-void construct_arp_header(uint8_t *buf, struct sr_if* source_if, sr_arp_hdr_t *arp_hdr, unsigned short type);
-void construct_ip_header(uint8_t *buf, uint32_t dst, uint32_t src, uint16_t type);
-uint8_t* construct_icmp_header(uint8_t *ip_buf, struct sr_if* source_if, uint8_t type, uint8_t code, unsigned long total_len);
 
 /* -- sr_if.c -- */
 void sr_add_interface(struct sr_instance* , const char* );
