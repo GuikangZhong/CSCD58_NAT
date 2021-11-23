@@ -29,11 +29,11 @@ class CS144Topo( Topo ):
         server1 = self.addHost( 'server1' )
         server2 = self.addHost( 'server2' )
         nat = self.addSwitch( 'sw0', protocols = ["OpenFlow10"] )
-        bridge = self.addSwitch( 'sw1' )
+        #bridge = self.addSwitch( 'sw1', protocols = ["OpenFlow10"] )
         client = self.addHost('client')
         self.addLink(client, nat)
-        for h in server1, server2, nat: #client, root:
-            self.addLink( h,  bridge)
+        for h in server1, server2: #client, root:
+            self.addLink( h,  nat)
 
 
 class CS144Controller( Controller ):
@@ -100,7 +100,7 @@ def set_default_route(host):
     if(host.name == 'server1'):
         routerip = IP_SETTING['sw0-eth2']
     elif(host.name == 'server2'):
-        routerip = IP_SETTING['sw0-eth2']
+        routerip = IP_SETTING['sw0-eth3']
     elif(host.name == 'client'):
         routerip = IP_SETTING['sw0-eth1']
     print host.name, routerip
