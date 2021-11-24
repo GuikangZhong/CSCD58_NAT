@@ -23,6 +23,7 @@
 #include "sr_protocol.h"
 #include "sr_arpcache.h"
 #include "sr_utils.h"
+#include "sr_nat.h"
 
 /* Helper function and global variable declarations*/
 static uint8_t* sr_create_etherframe(unsigned int load_len,
@@ -78,6 +79,9 @@ void sr_init(struct sr_instance* sr)
 
     /* Initialize cache and cache cleanup thread */
     sr_arpcache_init(&(sr->cache));
+
+    /* Initialize NAT */
+    sr_nat_init(&(sr->nat));
 
     pthread_attr_init(&(sr->attr));
     pthread_attr_setdetachstate(&(sr->attr), PTHREAD_CREATE_JOINABLE);

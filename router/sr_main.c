@@ -46,7 +46,7 @@ extern char* optarg;
 #define DEFAULT_TOPO 0
 
 static void usage(char* );
-static void sr_init_instance(struct sr_instance* );
+static void sr_init_instance(struct sr_instance*, int nat_enabled);
 static void sr_destroy_instance(struct sr_instance* );
 static void sr_set_user(struct sr_instance* );
 static void sr_load_rt_wrap(struct sr_instance* sr, char* rtable);
@@ -67,9 +67,12 @@ int main(int argc, char **argv)
     char *logfile = 0;
     struct sr_instance sr;
 
+    /* nat */
+    int nat_enabled = 0;
+
     printf("Using %s\n", VERSION_INFO);
 
-    while ((c = getopt(argc, argv, "hs:v:p:u:t:r:l:T:")) != EOF)
+    while ((c = getopt(argc, argv, "hs:v:p:u:t:r:l:T:n:")) != EOF)
     {
         switch (c)
         {
@@ -101,11 +104,14 @@ int main(int argc, char **argv)
             case 'T':
                 template = optarg;
                 break;
+            case 'n':
+                nat_enabled = 1;
+                break;
         } /* switch */
     } /* -- while -- */
 
     /* -- zero out sr instance -- */
-    sr_init_instance(&sr);
+    sr_init_instance(&sr, nat_enabled);
 
     /* -- set up routing table from file -- */
     if(template == NULL) {
@@ -237,7 +243,7 @@ static void sr_destroy_instance(struct sr_instance* sr)
  *
  *----------------------------------------------------------------------------*/
 
-static void sr_init_instance(struct sr_instance* sr)
+static void sr_init_instance(struct sr_instance* sr, int nat_enabled)
 {
     /* REQUIRES */
     assert(sr);
@@ -249,6 +255,7 @@ static void sr_init_instance(struct sr_instance* sr)
     sr->if_list = 0;
     sr->routing_table = 0;
     sr->logfile = 0;
+    sr->nat_enabled = 1 ? nat_enabled == 1 : 0;
 } /* -- sr_init_instance -- */
 
 /*-----------------------------------------------------------------------------
