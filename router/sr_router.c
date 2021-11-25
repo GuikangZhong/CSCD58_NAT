@@ -60,6 +60,8 @@ static void sr_forward_ippacket(struct sr_instance* sr,
                                 unsigned int len,
                                 char* interface/* lent */);
 
+void handle_nat(struct sr_instance* sr, uint32_t src_ip_addr, uint16_t *int_identifier);
+
 unsigned char ether_broadcast_addr[ETHER_ADDR_LEN];
 uint32_t ip_broadcast_addr;
 
@@ -368,7 +370,7 @@ void sr_handle_ippacket(struct sr_instance* sr,
     }
     
     else if (sr->nat_enabled && protocol == ip_protocol_icmp) {
-      uint16_t identifier = (uint16_t)(load + sizeof(uint16_t) + 2 * sizeof(uint8_t));
+      uint16_t *identifier = (uint16_t *)(load + sizeof(uint16_t) + 2 * sizeof(uint8_t));
       /* Change the internal IP to external IP */
       handle_nat(sr, ip_header->ip_src, identifier);
     }
@@ -378,8 +380,8 @@ void sr_handle_ippacket(struct sr_instance* sr,
   return;
 } /* end sr_handle_ippacket */
 
-void handle_nat(struct sr_instance* sr, uint32_t src_ip_addr, uint16_t int_identifier) {
-  printf("%hu\n", int_identifier);
+void handle_nat(struct sr_instance* sr, uint32_t src_ip_addr, uint16_t *int_identifier) {
+  printf("%hu\n", *int_identifier);
 }
 
 /*---------------------------------------------------------------------
