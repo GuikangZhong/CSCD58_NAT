@@ -30,9 +30,9 @@ class CS144Topo( Topo ):
         server2 = self.addHost( 'server2' )
         nat = self.addSwitch( 'sw0', protocols = ["OpenFlow10"] )
         #bridge = self.addSwitch( 'sw1', protocols = ["OpenFlow10"] )
-        client = self.addHost('client')
-        self.addLink(client, nat)
-        for h in server1, server2: #client, root:
+        client1 = self.addHost('client1')
+        client2 = self.addHost('client2')
+        for h in client1, server1, server2, client2: #client, root:
             self.addLink( h,  nat)
 
 
@@ -101,8 +101,10 @@ def set_default_route(host):
         routerip = IP_SETTING['sw0-eth2']
     elif(host.name == 'server2'):
         routerip = IP_SETTING['sw0-eth3']
-    elif(host.name == 'client'):
+    elif(host.name == 'client1'):
         routerip = IP_SETTING['sw0-eth1']
+    elif(host.name == 'client2'):
+        routerip = IP_SETTING['sw0-eth4']
     print host.name, routerip
     host.cmd('route add %s/32 dev %s-eth0' % (routerip, host.name))
     host.cmd('route add default gw %s dev %s-eth0' % (routerip, host.name))
@@ -134,15 +136,17 @@ def cs144net():
     info( '*** Creating network\n' )
     net = Mininet( topo=topo, controller=RemoteController, ipBase=IPBASE )
     net.start()
-    server1, server2, client, nat = net.get( 'server1', 'server2', 'client', 'sw0')
+    server1, server2, client1, client2 = net.get( 'server1', 'server2', 'client1', 'client2')
     s1intf = server1.defaultIntf()
     s1intf.setIP('%s/8' % IP_SETTING['server1'])
     s2intf = server2.defaultIntf()
     s2intf.setIP('%s/8' % IP_SETTING['server2'])
-    clintf = client.defaultIntf()
-    clintf.setIP('%s/8' % IP_SETTING['client'])
+    clintf = client1.defaultIntf()
+    clintf.setIP('%s/8' % IP_SETTING['client1'])
+    clintf2 = client2.defaultIntf()
+    clintf2.setIP('%s/8' % IP_SETTING['client2'])
 
-    for host in server1, server2, client:
+    for host in server1, server2, client1, client2:
         set_default_route(host)
     starthttp( server1 )
     starthttp( server2 )
