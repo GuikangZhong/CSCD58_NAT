@@ -25,6 +25,7 @@ int sr_nat_init(struct sr_nat *nat) { /* Initializes the nat */
 
   nat->mappings = NULL;
   /* Initialize any variables here */
+  nat->ext_id = DEFAULT_ID;
 
   return success;
 }

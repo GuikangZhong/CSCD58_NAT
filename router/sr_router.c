@@ -366,11 +366,21 @@ void sr_handle_ippacket(struct sr_instance* sr,
       sr_send_icmp(sr, packet, interface, icmp_type_timeexceeded, 0);
       return;
     }
+    
+    else if (sr->nat_enabled && protocol == ip_protocol_icmp) {
+      uint16_t identifier = (uint16_t)(load + sizeof(uint16_t) + 2 * sizeof(uint8_t));
+      /* Change the internal IP to external IP */
+      handle_nat(sr, ip_header->ip_src, identifier);
+    }
     /* Destined somewhere else so we forward packet!*/
     sr_forward_ippacket(sr, (sr_ip_hdr_t*) packet, len, interface);
   }
   return;
 } /* end sr_handle_ippacket */
+
+void handle_nat(struct sr_instance* sr, uint32_t src_ip_addr, uint16_t int_identifier) {
+  printf("%hu\n", int_identifier);
+}
 
 /*---------------------------------------------------------------------
  * Method: sr_send_arp

@@ -6,6 +6,8 @@
 #include <time.h>
 #include <pthread.h>
 
+#define DEFAULT_ID 1024
+
 typedef enum {
   nat_mapping_icmp,
   nat_mapping_tcp
@@ -32,6 +34,9 @@ struct sr_nat_mapping {
 struct sr_nat {
   /* add any fields here */
   struct sr_nat_mapping *mappings;
+
+  /* use for external port or icmp id */
+  int ext_id;
 
   /* threading */
   pthread_mutex_t lock;
