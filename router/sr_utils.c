@@ -19,6 +19,24 @@ uint16_t cksum (const void *_data, int len) {
   return sum ? sum : 0xffff;
 }
 
+int is_private_ip(uint32_t ip) {
+  /* Class A: 10.0. 0.0 — 10.255. 255.255 */
+  if (ip&0xff000000 == 0x0a000000) {
+    return 0;
+  }
+
+  /* Class B: 172.16. 0.0 — 172.31. 255.255 */
+  if (ip&0xffff0000 == 0xac100000) {
+    return 0;
+  }
+
+  /* Class C: 192.168. 0.0 — 192.168. 255.255 */
+  if (ip&0xffff0000 == 0xc0a80000) {
+    return 0;
+  }
+  return -1;
+}
+
 /* Prints out formatted Ethernet address, e.g. 00:11:22:33:44:55 */
 void print_addr_eth(uint8_t *addr) {
   int pos = 0;

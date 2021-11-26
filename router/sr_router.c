@@ -369,19 +369,71 @@ void sr_handle_ippacket(struct sr_instance* sr,
       return;
     }
     
-    else if (sr->nat_enabled && protocol == ip_protocol_icmp) {
-      uint16_t *identifier = (uint16_t *)(load + sizeof(uint16_t) + 2 * sizeof(uint8_t));
+    if (sr->nat_enabled && protocol == ip_protocol_icmp) {
       /* Change the internal IP to external IP */
-      handle_nat(sr, ip_header->ip_src, identifier);
+      handle_nat_icpm(sr, ip_header);
     }
+
     /* Destined somewhere else so we forward packet!*/
     sr_forward_ippacket(sr, (sr_ip_hdr_t*) packet, len, interface);
   }
   return;
 } /* end sr_handle_ippacket */
 
-void handle_nat(struct sr_instance* sr, uint32_t src_ip_addr, uint16_t *int_identifier) {
-  printf("%hu\n", *int_identifier);
+void handle_nat_icpm(struct sr_instance* sr, sr_ip_hdr_t *ip_header) {
+  //uint16_t *identifier = (uint16_t *)(load + sizeof(uint16_t) + 2 * sizeof(uint8_t));
+  // nat->ext_id
+
+  // external to external || internal to internal
+  if (is_private_ip(ip_header->ip_src) == is_private_ip(ip_header->ip_dst)) {
+    return ;
+  }
+
+  /* internal to external */
+  if (is_private_ip(ip_header->ip_src))
+  {
+    // loop up
+    // if empty -> insert
+    // if vlid -> trans
+    // if invlid -> update
+  } 
+  /* external to internal s->c */
+  else 
+  {
+    // look up
+    // if valid ....
+  }
+
+  // update check sum
+  unsigned int header_len;
+  ip_header->ip_sum = 0;
+  header_len = (ip_header->ip_hl)*4;
+  ip_header->ip_sum = cksum(ip_header, header_len);
+}
+
+
+void sr_handle_ippacket(struct sr_instance* sr,
+                        uint8_t* packet /* lent */,
+                        unsigned int len,
+                        char* interface/* lent */)
+{
+  /*Requires*/
+  assert(sr);
+  assert(packet);
+  assert(interface);
+
+  sr_ip_hdr_t* ip_header = 0;
+  uint16_t packet_sum;
+  
+
+  /* Check length of packet */
+  ip_header = (sr_ip_hdr_t*)packet;
+  if (len > IP_MAXPACKET || len <= sizeof(sr_ip_hdr_t)){
+    fprintf(stderr, "Invalid IP packet size \n");
+    return;
+  }
+
+  // printf("%hu\n", *int_identifier);
 }
 
 /*---------------------------------------------------------------------
