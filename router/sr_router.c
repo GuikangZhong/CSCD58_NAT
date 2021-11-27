@@ -381,10 +381,15 @@ void sr_handle_ippacket(struct sr_instance* sr,
 } /* end sr_handle_ippacket */
 
 void handle_nat_icmp(struct sr_instance* sr, sr_ip_hdr_t *ip_header) {
-  //uint16_t *identifier = (uint16_t *)(load + sizeof(uint16_t) + 2 * sizeof(uint8_t));
-  // nat->ext_id
+  uint16_t *id_int, *id_ext;
+  struct sr_nat_mapping *mapping;
+  time_t curtime;
+  unsigned int icmp_len;
+  unsigned int ip_header_len;
 
-  // external to external || internal to internal
+  sr_icmp_hdr_t *icmp_header = (sr_icmp_hdr_t *)(ip_header + sizeof(sr_ip_hdr_t));
+
+  /* external to external || internal to internal */
   if (is_private_ip(ip_header->ip_src) == is_private_ip(ip_header->ip_dst)) {
     return ;
   }
@@ -392,49 +397,46 @@ void handle_nat_icmp(struct sr_instance* sr, sr_ip_hdr_t *ip_header) {
   /* internal to external */
   if (is_private_ip(ip_header->ip_src))
   {
-    // loop up
-    // if empty -> insert
-    // if vlid -> trans
-    // if invlid -> update
+    
+    id_int = (uint16_t *)(&icmp_header->variable_field);
+    mapping = sr_nat_lookup_internal(&sr->nat, ip_header->ip_src, id_int, nat_mapping_icmp);
+    
+    /* if empty -> insert */
+    if (!mapping) {
+      mapping = sr_nat_insert_mapping(&sr->nat, ip_header->ip_src, id_int, nat_mapping_icmp);
+    } else {
+      /* if time out -> update */
+      curtime = time(NULL);
+      if (difftime(curtime, mapping->last_updated)>NAT_MAPPING_TO) {
+        mapping->aux_int = id_int;
+        mapping->last_updated = curtime;  
+      }
+    }
+    /* mapping is vlid -> translate src ip to public ip*/
+    memcpy(icmp_header->variable_field, mapping->aux_ext, sizeof(uint16_t));
+    ip_header->ip_src = mapping->ip_ext;
   } 
   /* external to internal s->c */
   else 
   {
-    // look up
-    // if valid ....
+    id_ext = (uint16_t *)(&icmp_header->variable_field);
+    mapping = sr_nat_lookup_external(&sr->nat, id_ext, nat_mapping_icmp);
+    /* if mapping is vlid -> translate dst ip to private ip*/
+    if (mapping) {
+      memcpy(icmp_header->variable_field, mapping->aux_int, sizeof(uint16_t));
+      ip_header->ip_dst = mapping->ip_int;
+    }
+
   }
 
-  // update check sum
-  unsigned int header_len;
+  /* update check sum */
+  icmp_len = ntohs(ip_header->ip_len) - sizeof(sr_ip_hdr_t);
+  icmp_header->icmp_sum = 0;
+  icmp_header->icmp_sum = cksum(icmp_header, icmp_len);
   ip_header->ip_sum = 0;
-  header_len = (ip_header->ip_hl)*4;
-  ip_header->ip_sum = cksum(ip_header, header_len);
+  ip_header->ip_sum = cksum(ip_header, sizeof(sr_ip_hdr_t));
 }
 
-
-void sr_handle_ippacket(struct sr_instance* sr,
-                        uint8_t* packet /* lent */,
-                        unsigned int len,
-                        char* interface/* lent */)
-{
-  /*Requires*/
-  assert(sr);
-  assert(packet);
-  assert(interface);
-
-  sr_ip_hdr_t* ip_header = 0;
-  uint16_t packet_sum;
-  
-
-  /* Check length of packet */
-  ip_header = (sr_ip_hdr_t*)packet;
-  if (len > IP_MAXPACKET || len <= sizeof(sr_ip_hdr_t)){
-    fprintf(stderr, "Invalid IP packet size \n");
-    return;
-  }
-
-  // printf("%hu\n", *int_identifier);
-}
 
 /*---------------------------------------------------------------------
  * Method: sr_send_arp

@@ -7,6 +7,7 @@
 #include <pthread.h>
 
 #define DEFAULT_ID 1024
+#define NAT_MAPPING_TO 60
 
 typedef enum {
   nat_mapping_icmp,
