@@ -401,17 +401,11 @@ void handle_nat_icmp(struct sr_instance* sr, sr_ip_hdr_t *ip_header) {
     id_int = (uint16_t *)(&icmp_header->variable_field);
     mapping = sr_nat_lookup_internal(&sr->nat, ip_header->ip_src, id_int, nat_mapping_icmp);
     
-    /* if empty -> insert */
-    if (!mapping) {
+    /* if empty or time out -> insert */
+    curtime = time(NULL);
+    if (!mapping || difftime(curtime, mapping->last_updated)>NAT_MAPPING_TO) {
       mapping = sr_nat_insert_mapping(&sr->nat, ip_header->ip_src, id_int, nat_mapping_icmp);
-    } else {
-      /* if time out -> update */
-      curtime = time(NULL);
-      if (difftime(curtime, mapping->last_updated)>NAT_MAPPING_TO) {
-        mapping->aux_int = id_int;
-        mapping->last_updated = curtime;  
-      }
-    }
+    } 
     /* mapping is vlid -> translate src ip to public ip*/
     memcpy(icmp_header->variable_field, mapping->aux_ext, sizeof(uint16_t));
     ip_header->ip_src = mapping->ip_ext;
