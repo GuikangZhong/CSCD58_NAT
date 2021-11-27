@@ -371,7 +371,7 @@ void sr_handle_ippacket(struct sr_instance* sr,
     
     if (sr->nat_enabled && protocol == ip_protocol_icmp) {
       /* Change the internal IP to external IP */
-      handle_nat_icpm(sr, ip_header);
+      handle_nat_icmp(sr, ip_header);
     }
 
     /* Destined somewhere else so we forward packet!*/
@@ -380,7 +380,7 @@ void sr_handle_ippacket(struct sr_instance* sr,
   return;
 } /* end sr_handle_ippacket */
 
-void handle_nat_icpm(struct sr_instance* sr, sr_ip_hdr_t *ip_header) {
+void handle_nat_icmp(struct sr_instance* sr, sr_ip_hdr_t *ip_header) {
   //uint16_t *identifier = (uint16_t *)(load + sizeof(uint16_t) + 2 * sizeof(uint8_t));
   // nat->ext_id
 
