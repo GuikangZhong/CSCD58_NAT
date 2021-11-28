@@ -381,7 +381,7 @@ void sr_handle_ippacket(struct sr_instance* sr,
 } /* end sr_handle_ippacket */
 
 void handle_nat_icmp(struct sr_instance* sr, sr_ip_hdr_t *ip_header) {
-  uint16_t *id_int, *id_ext;
+  uint16_t id_int, id_ext;
   struct sr_nat_mapping *mapping;
   time_t curtime;
   unsigned int icmp_len;
@@ -397,27 +397,26 @@ void handle_nat_icmp(struct sr_instance* sr, sr_ip_hdr_t *ip_header) {
   /* internal to external */
   if (is_private_ip(ip_header->ip_src))
   {
-    
-    id_int = (uint16_t *)(&icmp_header->variable_field);
+    /* get the higher 16 bits */
+    id_int = (uint16_t)((icmp_header->variable_field >> 16) & 0xFFFFUL);
     mapping = sr_nat_lookup_internal(&sr->nat, ip_header->ip_src, id_int, nat_mapping_icmp);
     
     /* if empty or time out -> insert */
-    curtime = time(NULL);
-    if (!mapping || difftime(curtime, mapping->last_updated)>NAT_MAPPING_TO) {
+    if (!mapping) {
       mapping = sr_nat_insert_mapping(&sr->nat, ip_header->ip_src, id_int, nat_mapping_icmp);
     } 
-    /* mapping is vlid -> translate src ip to public ip*/
-    memcpy(icmp_header->variable_field, mapping->aux_ext, sizeof(uint16_t));
+    /* mapping is valid -> translate src ip to public ip*/
+    memcpy(&(icmp_header->variable_field), &(mapping->aux_ext), sizeof(uint16_t));
     ip_header->ip_src = mapping->ip_ext;
   } 
   /* external to internal s->c */
   else 
   {
-    id_ext = (uint16_t *)(&icmp_header->variable_field);
+    id_ext = (uint16_t)((icmp_header->variable_field >> 16) & 0xFFFFUL);
     mapping = sr_nat_lookup_external(&sr->nat, id_ext, nat_mapping_icmp);
     /* if mapping is vlid -> translate dst ip to private ip*/
     if (mapping) {
-      memcpy(icmp_header->variable_field, mapping->aux_int, sizeof(uint16_t));
+      memcpy(&(icmp_header->variable_field), &(mapping->aux_int), sizeof(uint16_t));
       ip_header->ip_dst = mapping->ip_int;
     }
 
