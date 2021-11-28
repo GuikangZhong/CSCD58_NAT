@@ -396,11 +396,11 @@ void handle_nat_icmp(struct sr_instance* sr, sr_ip_hdr_t *ip_header) {
   }
 
   /* internal to external */
-  printf("ip: ");
   print_addr_ip_int(ntohl(ip_header->ip_src));
   if (is_private_ip(ntohl(ip_header->ip_src)))
   {
     printf("[NAT]: internal -> external\n");
+    print_hdr_icmp((uint8_t *)icmp_header);
     /* get the higher 16 bits */
     /* id_int = (uint16_t)((icmp_header->variable_field >> 16) & 0xFFFFUL);*/
     id_int = icmp_header->identifier;
@@ -415,6 +415,7 @@ void handle_nat_icmp(struct sr_instance* sr, sr_ip_hdr_t *ip_header) {
     printf("%hu\n", icmp_header->identifier);
     printf("%hu\n", icmp_header->seq_num);
     /*ip_header->ip_src = mapping->ip_ext;*/
+    print_hdr_icmp((uint8_t *)icmp_header);
   } 
   /* external to internal s->c */
   else 
