@@ -388,7 +388,7 @@ void handle_nat_icmp(struct sr_instance* sr, sr_ip_hdr_t *ip_header) {
   unsigned int ip_header_len;
 
   printf("[NAT]: packet arrived! \n");
-  sr_icmp_hdr_t *icmp_header = (sr_icmp_hdr_t *)(ip_header + (ip_header->ip_hl)*4);
+  sr_icmp_hdr_t *icmp_header = (sr_icmp_hdr_t *)(ip_header + sizeof(sr_ip_hdr_t));
 
   /* external to external || internal to internal */
   if (is_private_ip(ntohl(ip_header->ip_src)) == is_private_ip(ntohl(ip_header->ip_dst))) {
