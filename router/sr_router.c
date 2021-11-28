@@ -387,15 +387,15 @@ void handle_nat_icmp(struct sr_instance* sr, sr_ip_hdr_t *ip_header) {
   unsigned int icmp_len;
   unsigned int ip_header_len;
 
-  sr_icmp_hdr_t *icmp_header = (sr_icmp_hdr_t *)(ip_header + sizeof(sr_ip_hdr_t));
+  sr_icmp_hdr_t *icmp_header = (sr_icmp_hdr_t *)(ip_header + (ip_header->ip_hl)*4);
 
   /* external to external || internal to internal */
-  if (is_private_ip(ip_header->ip_src) == is_private_ip(ip_header->ip_dst)) {
+  if (is_private_ip(ntohl(ip_header->ip_src)) == is_private_ip(ntohl(ip_header->ip_dst))) {
     return ;
   }
 
   /* internal to external */
-  if (is_private_ip(ip_header->ip_src))
+  if (is_private_ip(ntohl(ip_header->ip_src)))
   {
     /* get the higher 16 bits */
     /* id_int = (uint16_t)((icmp_header->variable_field >> 16) & 0xFFFFUL);*/
@@ -407,8 +407,10 @@ void handle_nat_icmp(struct sr_instance* sr, sr_ip_hdr_t *ip_header) {
       mapping = sr_nat_insert_mapping(&sr->nat, ip_header->ip_src, id_int, nat_mapping_icmp);
     } 
     /* mapping is valid -> translate src ip to public ip*/
-    memcpy(&(icmp_header->identifier), &(mapping->aux_ext), sizeof(uint16_t));
-    ip_header->ip_src = mapping->ip_ext;
+    icmp_header->identifier = mapping->aux_ext;
+    printf("%hu\n", icmp_header->identifier);
+    printf("%hu\n", icmp_header->seq_num);
+    /*ip_header->ip_src = mapping->ip_ext;*/
   } 
   /* external to internal s->c */
   else 
@@ -823,7 +825,7 @@ uint8_t* sr_create_icmppacket(unsigned int* len,
   sr_icmp_hdr_t* icmp_packet = 0;
   icmp_packet = (sr_icmp_hdr_t*)malloc(sizeof(sr_icmp_hdr_t));
   assert(icmp_packet);
-
+  printf("1111111111111111111111111111111\n");
   /* Fill in the type and code fields */
   icmp_packet->icmp_code = icmp_code;
   icmp_packet->icmp_type = icmp_type;
@@ -848,6 +850,7 @@ uint8_t* sr_create_icmppacket(unsigned int* len,
     /* Copy the data into an appropriately allocated icmp packet*/
     icmp_packet = realloc(icmp_packet, *len);
     icmp_packet->identifier = echo_request->identifier;
+    printf("identifier: %d\n", icmp_packet->identifier);
     icmp_packet->seq_num = echo_request->seq_num;
     memcpy((uint8_t*)icmp_packet + sizeof(sr_icmp_hdr_t),
             (uint8_t*)echo_request + sizeof(sr_icmp_hdr_t), data_len);
