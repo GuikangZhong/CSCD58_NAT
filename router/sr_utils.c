@@ -21,20 +21,20 @@ uint16_t cksum (const void *_data, int len) {
 
 int is_private_ip(uint32_t ip) {
   /* Class A: 10.0. 0.0 — 10.255. 255.255 */
-  if (ip&0xff000000 == 0x0a000000) {
-    return 0;
+  if ((ip & 0xff000000) == 0x0a000000) {
+    return 1;
   }
 
   /* Class B: 172.16. 0.0 — 172.31. 255.255 */
-  if (ip&0xffff0000 == 0xac100000) {
-    return 0;
+  if ((ip & 0xffff0000) == 0xac100000) {
+    return 1;
   }
 
   /* Class C: 192.168. 0.0 — 192.168. 255.255 */
-  if (ip&0xffff0000 == 0xc0a80000) {
-    return 0;
+  if ((ip & 0xffff0000) == 0xc0a80000) {
+    return 1;
   }
-  return -1;
+  return 0;
 }
 
 /* Prints out formatted Ethernet address, e.g. 00:11:22:33:44:55 */
@@ -122,6 +122,8 @@ void print_hdr_icmp(uint8_t *buf) {
   fprintf(stderr, "\tcode: %d\n", icmp_hdr->icmp_code);
   /* Keep checksum in NBO */
   fprintf(stderr, "\tchecksum: %d\n", icmp_hdr->icmp_sum);
+  fprintf(stderr, "\tidentifier: %d\n", icmp_hdr->identifier);
+  fprintf(stderr, "\tseq_num: %d\n", icmp_hdr->seq_num);
 }
 
 

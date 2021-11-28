@@ -140,8 +140,9 @@ struct sr_nat_mapping *sr_nat_insert_mapping(struct sr_nat *nat,
 
   temp = (struct sr_nat_mapping *)calloc(1, sizeof(struct sr_nat_mapping));
   temp->ip_int = ip_int;
+  temp->type = type;
   temp->aux_int = aux_int;
-  temp->aux_ext = nat->ext_id + 1;
+  temp->aux_ext = nat->ext_id;
   nat->ext_id++;
   temp->last_updated = time(NULL);
 
