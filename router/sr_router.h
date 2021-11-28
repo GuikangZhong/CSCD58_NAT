@@ -80,7 +80,7 @@ void sr_send_icmp(struct sr_instance* sr,
                   char* interface/* lent */,
                   uint8_t type,
                   uint8_t code);
-void handle_nat_icmp(struct sr_instance* sr, sr_ip_hdr_t *ip_header);
+void handle_nat_icmp(struct sr_instance* sr, uint8_t *ip_packet);
 
 /* -- sr_if.c -- */
 void sr_add_interface(struct sr_instance* , const char* );

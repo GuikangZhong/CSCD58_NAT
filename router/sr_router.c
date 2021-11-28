@@ -371,7 +371,7 @@ void sr_handle_ippacket(struct sr_instance* sr,
     
     if (sr->nat_enabled && protocol == ip_protocol_icmp) {
       /* Change the internal IP to external IP */
-      handle_nat_icmp(sr, ip_header);
+      handle_nat_icmp(sr, packet);
     }
 
     /* Destined somewhere else so we forward packet!*/
@@ -380,15 +380,16 @@ void sr_handle_ippacket(struct sr_instance* sr,
   return;
 } /* end sr_handle_ippacket */
 
-void handle_nat_icmp(struct sr_instance* sr, sr_ip_hdr_t *ip_header) {
+void handle_nat_icmp(struct sr_instance* sr, uint8_t *ip_packet) {
   uint16_t id_int, id_ext;
   struct sr_nat_mapping *mapping;
   time_t curtime;
+  sr_ip_hdr_t *ip_header = (sr_ip_hdr_t *)(ip_packet);
   unsigned int icmp_len;
-  unsigned int ip_header_len;
+  unsigned int ip_header_len = (ip_header->ip_hl)*4;
 
   printf("[NAT]: packet arrived! \n");
-  sr_icmp_hdr_t *icmp_header = (sr_icmp_hdr_t *)(ip_header + sizeof(sr_ip_hdr_t));
+  sr_icmp_hdr_t *icmp_header = (sr_icmp_hdr_t *)(ip_packet + ip_header_len);
 
   /* external to external || internal to internal */
   if (is_private_ip(ntohl(ip_header->ip_src)) == is_private_ip(ntohl(ip_header->ip_dst))) {
@@ -411,9 +412,7 @@ void handle_nat_icmp(struct sr_instance* sr, sr_ip_hdr_t *ip_header) {
       mapping = sr_nat_insert_mapping(&sr->nat, ip_header->ip_src, id_int, nat_mapping_icmp);
     } 
     /* mapping is valid -> translate src ip to public ip*/
-    icmp_header->identifier = mapping->aux_ext;
-    printf("%hu\n", icmp_header->identifier);
-    printf("%hu\n", icmp_header->seq_num);
+    icmp_header->identifier = htons(mapping->aux_ext);
     /*ip_header->ip_src = mapping->ip_ext;*/
     print_hdr_icmp((uint8_t *)icmp_header);
   } 
