@@ -349,6 +349,15 @@ void sr_handle_ippacket(struct sr_instance* sr,
         /* If it is an echo, reply*/
         sr_send_icmp(sr, packet, interface, icmp_type_echoreply, 0);
       } else {
+        
+        if (sr->nat_enabled && protocol == icmp_header->icmp_type == 0) {
+          /* Change the internal IP to external IP */
+          handle_nat_icmp(sr, packet);
+          /* Destined somewhere else so we forward packet!*/
+          sr_forward_ippacket(sr, (sr_ip_hdr_t*) packet, len, interface);
+          return;
+        }
+
         /* Otherwise, we don't handle it*/
         fprintf(stderr, "ICMP message received, no action taken \n");
         return;
@@ -425,6 +434,8 @@ void handle_nat_icmp(struct sr_instance* sr, uint8_t *ip_packet) {
     if (mapping) {
       icmp_header->identifier = htons(mapping->aux_int);
       ip_header->ip_dst = htonl(mapping->ip_int);
+    } else {
+      return ;
     }
 
   }
