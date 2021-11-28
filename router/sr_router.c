@@ -350,7 +350,7 @@ void sr_handle_ippacket(struct sr_instance* sr,
         sr_send_icmp(sr, packet, interface, icmp_type_echoreply, 0);
       } else {
         
-        if (sr->nat_enabled && protocol == icmp_header->icmp_type == 0) {
+        if (sr->nat_enabled && icmp_header->icmp_type == 0) {
           /* Change the internal IP to external IP */
           handle_nat_icmp(sr, packet);
           /* Destined somewhere else so we forward packet!*/
