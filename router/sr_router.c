@@ -381,7 +381,7 @@ void sr_handle_ippacket(struct sr_instance* sr,
 } /* end sr_handle_ippacket */
 
 void handle_nat_icmp(struct sr_instance* sr, uint8_t *ip_packet) {
-  uint16_t id_int, id_ext;
+  uint32_t ip_ext;
   struct sr_nat_mapping *mapping;
   time_t curtime;
   sr_ip_hdr_t *ip_header = (sr_ip_hdr_t *)(ip_packet);
@@ -402,30 +402,29 @@ void handle_nat_icmp(struct sr_instance* sr, uint8_t *ip_packet) {
   {
     printf("[NAT]: internal -> external\n");
     print_hdr_icmp((uint8_t *)icmp_header);
-    /* get the higher 16 bits */
-    /* id_int = (uint16_t)((icmp_header->variable_field >> 16) & 0xFFFFUL);*/
-    id_int = icmp_header->identifier;
-    mapping = sr_nat_lookup_internal(&sr->nat, ip_header->ip_src, id_int, nat_mapping_icmp);
-    
+
+    mapping = sr_nat_lookup_internal(&sr->nat, ntohl(ip_header->ip_src), ntohs(icmp_header->identifier), nat_mapping_icmp);
     /* if empty or time out -> insert */
     if (!mapping) {
-      mapping = sr_nat_insert_mapping(&sr->nat, ip_header->ip_src, id_int, nat_mapping_icmp);
+      mapping = sr_nat_insert_mapping(&sr->nat, ntohl(ip_header->ip_src), ntohs(icmp_header->identifier), nat_mapping_icmp);
     } 
+
     /* mapping is valid -> translate src ip to public ip*/
     icmp_header->identifier = htons(mapping->aux_ext);
-    /*ip_header->ip_src = mapping->ip_ext;*/
+    ip_ext = get_oif_ip(sr, ip_header->ip_dst);
+    ip_header->ip_src = htons(ip_ext);
+
     print_hdr_icmp((uint8_t *)icmp_header);
   } 
   /* external to internal s->c */
   else 
   {
     printf("[NAT]: external -> internal\n");
-    id_ext = icmp_header->identifier;
-    mapping = sr_nat_lookup_external(&sr->nat, id_ext, nat_mapping_icmp);
+    mapping = sr_nat_lookup_external(&sr->nat, ntohs(icmp_header->identifier), nat_mapping_icmp);
     /* if mapping is valid -> translate dst ip to private ip*/
     if (mapping) {
-      memcpy(&(icmp_header->identifier), &(mapping->aux_int), sizeof(uint16_t));
-      ip_header->ip_dst = mapping->ip_int;
+      icmp_header->identifier = htons(mapping->aux_int);
+      ip_header->ip_dst = htonl(mapping->ip_int);
     }
 
   }
@@ -436,6 +435,32 @@ void handle_nat_icmp(struct sr_instance* sr, uint8_t *ip_packet) {
   icmp_header->icmp_sum = cksum(icmp_header, icmp_len);
   ip_header->ip_sum = 0;
   ip_header->ip_sum = cksum(ip_header, sizeof(sr_ip_hdr_t));
+}
+
+/* Get outgoing interface ip */
+uint32_t get_oif_ip(struct sr_instance* sr, uint32_t ip_dst) {
+  struct sr_if *oif;
+  struct sr_rt *entry = sr->routing_table;
+  struct sr_rt *match = NULL;
+  int longest_mask = 0;
+
+  /* longest prefix match */
+  while (entry) {
+    uint32_t netid = ntohl(ip_dst) & entry->mask.s_addr;
+    if (ntohl(entry->gw.s_addr) == netid) {
+      if (longest_mask < entry->mask.s_addr) {
+        longest_mask = entry->mask.s_addr;
+        match = entry;
+      }
+    }
+    entry = entry->next;
+  }
+
+  if (match == NULL) {
+    return 0;
+  }
+  oif = sr_get_interface(sr, match->interface);
+  return oif->ip;
 }
 
 
