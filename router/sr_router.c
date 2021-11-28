@@ -392,7 +392,6 @@ void sr_handle_ippacket(struct sr_instance* sr,
 void handle_nat_icmp(struct sr_instance* sr, uint8_t *ip_packet) {
   uint32_t ip_ext;
   struct sr_nat_mapping *mapping;
-  time_t curtime;
   sr_ip_hdr_t *ip_header = (sr_ip_hdr_t *)(ip_packet);
   unsigned int icmp_len;
   unsigned int ip_header_len = (ip_header->ip_hl)*4;
