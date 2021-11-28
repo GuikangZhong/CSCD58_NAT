@@ -400,8 +400,8 @@ void handle_nat_icmp(struct sr_instance* sr, uint8_t *ip_packet) {
   printf("[NAT]: packet arrived! \n");
   sr_icmp_hdr_t *icmp_header = (sr_icmp_hdr_t *)(ip_packet + ip_header_len);
 
-  /* external to external || internal to internal */
-  if (is_private_ip(ntohl(ip_header->ip_src)) == is_private_ip(ntohl(ip_header->ip_dst))) {
+  /* internal to internal */
+  if (is_private_ip(ntohl(ip_header->ip_src)) && is_private_ip(ntohl(ip_header->ip_dst))) {
     return ;
   }
 
@@ -435,6 +435,7 @@ void handle_nat_icmp(struct sr_instance* sr, uint8_t *ip_packet) {
       icmp_header->identifier = htons(mapping->aux_int);
       ip_header->ip_dst = htonl(mapping->ip_int);
     } else {
+      /* external to external */
       return ;
     }
 
@@ -866,7 +867,6 @@ uint8_t* sr_create_icmppacket(unsigned int* len,
   sr_icmp_hdr_t* icmp_packet = 0;
   icmp_packet = (sr_icmp_hdr_t*)malloc(sizeof(sr_icmp_hdr_t));
   assert(icmp_packet);
-  printf("1111111111111111111111111111111\n");
   /* Fill in the type and code fields */
   icmp_packet->icmp_code = icmp_code;
   icmp_packet->icmp_type = icmp_type;
