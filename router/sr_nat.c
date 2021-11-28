@@ -6,6 +6,9 @@
 #include <time.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
+#include "sr_utils.h"
+#include "sr_protocol.h"
 
 int sr_nat_init(struct sr_nat *nat) { /* Initializes the nat */
 
@@ -53,21 +56,24 @@ void *sr_nat_timeout(void *nat_ptr) {  /* Periodic Timout handling */
     pthread_mutex_lock(&(nat->lock));
 
     time_t curtime = time(NULL);
-
+    
     /* handle periodic tasks here */
     struct sr_nat_mapping *dummy_head = (struct sr_nat_mapping *)calloc(1, sizeof(struct sr_nat_mapping));
     dummy_head->next = nat->mappings;
     struct sr_nat_mapping *prev = dummy_head;
     struct sr_nat_mapping *curr = nat->mappings;
 
-    while (curr) {
+    while (curr != NULL) {
       if (difftime(curtime, curr->last_updated)>NAT_MAPPING_TO) {
         prev->next = curr->next;
         curr = curr->next;
-      } 
-      prev = curr;
-      curr = curr->next;
+      } else {
+        prev = curr;
+        curr = curr->next;      
+      }
+
     }
+    nat->mappings = dummy_head->next;
     free(dummy_head);
     pthread_mutex_unlock(&(nat->lock));
   }
@@ -136,21 +142,20 @@ struct sr_nat_mapping *sr_nat_insert_mapping(struct sr_nat *nat,
 
   /* handle insert here, create a mapping, and then return a copy of it */
   
-  struct sr_nat_mapping *temp;
+  struct sr_nat_mapping *new_entry;
 
-  temp = (struct sr_nat_mapping *)calloc(1, sizeof(struct sr_nat_mapping));
-  temp->ip_int = ip_int;
-  temp->type = type;
-  temp->aux_int = aux_int;
-  temp->aux_ext = nat->ext_id;
+  new_entry = (struct sr_nat_mapping *)calloc(1, sizeof(struct sr_nat_mapping));
+  new_entry->ip_int = ip_int;
+  new_entry->type = type;
+  new_entry->aux_int = aux_int;
+  new_entry->aux_ext = nat->ext_id;
   nat->ext_id++;
-  temp->last_updated = time(NULL);
-
-  temp->next = nat->mappings;
-  nat->mappings = temp;
+  new_entry->last_updated = time(NULL);
+  new_entry->next = nat->mappings;
+  nat->mappings = new_entry;
 
   struct sr_nat_mapping *mapping = (struct sr_nat_mapping *) malloc(sizeof(struct sr_nat_mapping)); 
-  memcpy(mapping, temp, sizeof(struct sr_nat_mapping));
+  memcpy(mapping, new_entry, sizeof(struct sr_nat_mapping));
 
   pthread_mutex_unlock(&(nat->lock));
   return mapping;
