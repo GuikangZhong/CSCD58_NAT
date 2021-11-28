@@ -412,7 +412,7 @@ void handle_nat_icmp(struct sr_instance* sr, uint8_t *ip_packet) {
     /* mapping is valid -> translate src ip to public ip*/
     icmp_header->identifier = htons(mapping->aux_ext);
     ip_ext = get_oif_ip(sr, ip_header->ip_dst);
-    ip_header->ip_src = htonl(ip_ext);
+    ip_header->ip_src = ip_ext;
 
     print_hdr_icmp((uint8_t *)icmp_header);
   } 
