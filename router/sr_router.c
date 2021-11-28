@@ -396,7 +396,7 @@ void handle_nat_icmp(struct sr_instance* sr, sr_ip_hdr_t *ip_header) {
   }
 
   /* internal to external */
-  print("ip: ");
+  printf("ip: ");
   print_addr_ip_int(ip_header->ip_src);
   if (is_private_ip(ntohl(ip_header->ip_src)))
   {
