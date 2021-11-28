@@ -21,17 +21,17 @@ uint16_t cksum (const void *_data, int len) {
 
 int is_private_ip(uint32_t ip) {
   /* Class A: 10.0. 0.0 — 10.255. 255.255 */
-  if (ip&0xff000000 == 0x0a000000) {
+  if ((ip & 0xff000000) == 0x0a000000) {
     return 0;
   }
 
   /* Class B: 172.16. 0.0 — 172.31. 255.255 */
-  if (ip&0xffff0000 == 0xac100000) {
+  if ((ip & 0xffff0000) == 0xac100000) {
     return 0;
   }
 
   /* Class C: 192.168. 0.0 — 192.168. 255.255 */
-  if (ip&0xffff0000 == 0xc0a80000) {
+  if ((ip & 0xffff0000) == 0xc0a80000) {
     return 0;
   }
   return -1;
