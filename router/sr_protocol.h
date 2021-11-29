@@ -203,6 +203,19 @@ struct sr_tcp_hdr {
   uint16_t dst_port; /* destination port */
   uint32_t seq_num; /* sequence number */
   uint32_t ack_num; /* acknowledgment number */
+
+#if __BYTE_ORDER == __LITTLE_ENDIAN
+  unsigned int reserved: 4; /* Reserved for future use.  Must be zero */
+  unsigned int data_offset: 4; /* data offset */
+  unsigned int FIN: 1; /* End of data flag */
+  unsigned int SYN: 1; /* Synchronize sequence numbers flag */
+  unsigned int RST: 1; /* Reset connection flag */
+  unsigned int PSH: 1; /* Push flag */
+  unsigned int ACK: 1; /* Acknowledgment number valid flag */
+  unsigned int URG: 1; /* Urgent pointer valid flag */
+  unsigned int ecn: 2; /* Explicit Congestion Notification */
+
+#elif __BYTE_ORDER == __BIG_ENDIAN
   unsigned int data_offset: 4; /* data offset */
   unsigned int reserved: 3; /* Reserved for future use.  Must be zero */
   unsigned int ecn: 3; /* Explicit Congestion Notification */
@@ -212,6 +225,9 @@ struct sr_tcp_hdr {
   unsigned int RST: 1; /* Reset connection flag */
   unsigned int SYN: 1; /* Synchronize sequence numbers flag */
   unsigned int FIN: 1; /* End of data flag */
+#else
+#error "Byte ordering not specified " 
+#endif 
   uint16_t window; /* receiving window size */
   uint16_t checksum; 
   uint16_t urgent_pointer; 
