@@ -396,7 +396,8 @@ void handle_nat_tcp(struct sr_instance* sr, uint8_t *ip_packet) {
   sr_ip_hdr_t *ip_header = (sr_ip_hdr_t *)(ip_packet);
   unsigned int icmp_len;
   unsigned int ip_header_len = (ip_header->ip_hl)*4;
-  sr_tcp_hdr_t *icmp_header = (sr_tcp_hdr_t *)(ip_packet + ip_header_len);
+  sr_tcp_hdr_t *tcp_header = (sr_tcp_hdr_t *)(ip_packet + ip_header_len);
+  print_hdr_tcp((uint8_t *)tcp_header);
   return;
 }
 

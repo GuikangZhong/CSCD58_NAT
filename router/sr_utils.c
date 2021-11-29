@@ -114,6 +114,26 @@ void print_hdr_ip(uint8_t *buf) {
   print_addr_ip_int(ntohl(iphdr->ip_dst));
 }
 
+/* Prints out TCP header fields */
+void print_hdr_tcp(uint8_t *buf) {
+  sr_tcp_hdr_t *tcp_hdr = (sr_tcp_hdr_t *)(buf);
+  fprintf(stderr, "ICMP header:\n");
+  fprintf(stderr, "\tsource port: %d\n", tcp_hdr->src_port);
+  fprintf(stderr, "\tdestination port: %d\n", tcp_hdr->dst_port);
+  fprintf(stderr, "\tsequence number: %d\n", tcp_hdr->seq_num);
+  fprintf(stderr, "\tdata offset: %d\n", tcp_hdr->data_offset);
+  fprintf(stderr, "\tecn: %d\n", tcp_hdr->ecn);
+  fprintf(stderr, "\tURG: %d\n", tcp_hdr->URG);
+  fprintf(stderr, "\tACK: %d\n", tcp_hdr->ACK);
+  fprintf(stderr, "\tPSH: %d\n", tcp_hdr->PSH);
+  fprintf(stderr, "\tRST: %d\n", tcp_hdr->RST);
+  fprintf(stderr, "\tSYN: %d\n", tcp_hdr->SYN);
+  fprintf(stderr, "\tFIN: %d\n", tcp_hdr->FIN);
+  fprintf(stderr, "\twindow: %d\n", tcp_hdr->window);
+  fprintf(stderr, "\tchecksum: %d\n", tcp_hdr->checksum);
+  fprintf(stderr, "\turgent_pointer: %d\n", tcp_hdr->urgent_pointer);
+}
+
 /* Prints out ICMP header fields */
 void print_hdr_icmp(uint8_t *buf) {
   sr_icmp_hdr_t *icmp_hdr = (sr_icmp_hdr_t *)(buf);
