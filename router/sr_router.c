@@ -60,8 +60,6 @@ static void sr_forward_ippacket(struct sr_instance* sr,
                                 unsigned int len,
                                 char* interface/* lent */);
 
-void handle_nat(struct sr_instance* sr, uint32_t src_ip_addr, uint16_t *int_identifier);
-
 unsigned char ether_broadcast_addr[ETHER_ADDR_LEN];
 uint32_t ip_broadcast_addr;
 
@@ -349,14 +347,12 @@ void sr_handle_ippacket(struct sr_instance* sr,
         /* If it is an echo, reply*/
         sr_send_icmp(sr, packet, interface, icmp_type_echoreply, 0);
       } else {
-        
+        /*
         if (sr->nat_enabled && icmp_header->icmp_type == 0) {
-          /* Change the internal IP to external IP */
           handle_nat_icmp(sr, packet);
-          /* Destined somewhere else so we forward packet!*/
           sr_forward_ippacket(sr, (sr_ip_hdr_t*) packet, len, interface);
           return;
-        }
+        }*/
 
         /* Otherwise, we don't handle it*/
         fprintf(stderr, "ICMP message received, no action taken \n");
@@ -377,11 +373,6 @@ void sr_handle_ippacket(struct sr_instance* sr,
       sr_send_icmp(sr, packet, interface, icmp_type_timeexceeded, 0);
       return;
     }
-    
-    if (sr->nat_enabled && protocol == ip_protocol_icmp) {
-      /* Change the internal IP to external IP */
-      handle_nat_icmp(sr, packet);
-    }
 
     /* Destined somewhere else so we forward packet!*/
     sr_forward_ippacket(sr, (sr_ip_hdr_t*) packet, len, interface);
@@ -389,8 +380,7 @@ void sr_handle_ippacket(struct sr_instance* sr,
   return;
 } /* end sr_handle_ippacket */
 
-void handle_nat_icmp(struct sr_instance* sr, uint8_t *ip_packet) {
-  uint32_t ip_ext;
+void handle_nat_icmp(struct sr_instance* sr, uint8_t *ip_packet, uint32_t ext_ip) {
   struct sr_nat_mapping *mapping;
   sr_ip_hdr_t *ip_header = (sr_ip_hdr_t *)(ip_packet);
   unsigned int icmp_len;
@@ -419,8 +409,7 @@ void handle_nat_icmp(struct sr_instance* sr, uint8_t *ip_packet) {
 
     /* mapping is valid -> translate src ip to public ip*/
     icmp_header->identifier = htons(mapping->aux_ext);
-    ip_ext = get_oif_ip(sr, ip_header->ip_dst);
-    ip_header->ip_src = ip_ext;
+    ip_header->ip_src = ext_ip;
 
     print_hdr_icmp((uint8_t *)icmp_header);
   } 
@@ -446,34 +435,9 @@ void handle_nat_icmp(struct sr_instance* sr, uint8_t *ip_packet) {
   icmp_header->icmp_sum = cksum(icmp_header, icmp_len);
   ip_header->ip_sum = 0;
   ip_header->ip_sum = cksum(ip_header, sizeof(sr_ip_hdr_t));
+
+  free(mapping);
 }
-
-/* Get outgoing interface ip */
-uint32_t get_oif_ip(struct sr_instance* sr, uint32_t ip_dst) {
-  struct sr_if *oif;
-  struct sr_rt *entry = sr->routing_table;
-  struct sr_rt *match = NULL;
-  int longest_mask = 0;
-
-  /* longest prefix match */
-  while (entry) {
-    uint32_t netid = ntohl(ip_dst) & entry->mask.s_addr;
-    if (ntohl(entry->gw.s_addr) == netid) {
-      if (longest_mask < entry->mask.s_addr) {
-        longest_mask = entry->mask.s_addr;
-        match = entry;
-      }
-    }
-    entry = entry->next;
-  }
-
-  if (match == NULL) {
-    return 0;
-  }
-  oif = sr_get_interface(sr, match->interface);
-  return oif->ip;
-}
-
 
 /*---------------------------------------------------------------------
  * Method: sr_send_arp
@@ -643,11 +607,19 @@ void sr_forward_ippacket(struct sr_instance* sr,
   uint32_t dest_ip;
   sr_rt_t* lpm = 0;
 
+  uint8_t protocol = packet->ip_p;
+
   /* Look for route in routing table*/
   dest_ip = packet->ip_dst;
   lpm = sr_rt_lookup(sr->routing_table, dest_ip);
   /* If route exists, forward packet */
   if (lpm) {
+    sr_if_t* interface_info = sr_get_interface(sr, lpm->interface);
+    if (sr->nat_enabled && protocol == ip_protocol_icmp) {
+      /* Change the internal IP to external IP */
+      handle_nat_icmp(sr, (uint8_t*)packet, interface_info->ip);
+    }
+
     sr_arpentry_t* arp_entry = 0;
     /* Recalculate checksum after ttl has been decremented*/
     packet->ip_sum = 0;
@@ -659,7 +631,6 @@ void sr_forward_ippacket(struct sr_instance* sr,
     if (arp_entry) {
       uint8_t* frame = 0;
       /* Retrieve required information and wrap in ethernet frame */
-      sr_if_t* interface_info = sr_get_interface(sr, lpm->interface);
       frame = sr_create_etherframe(len, (uint8_t*)packet, arp_entry->mac,
               interface_info->addr, ethertype_ip);
       /* Send packet out of the route*/
