@@ -390,7 +390,6 @@ void sr_handle_ippacket(struct sr_instance* sr,
 } /* end sr_handle_ippacket */
 
 void handle_nat_icmp(struct sr_instance* sr, uint8_t *ip_packet) {
-  uint32_t ip_ext;
   struct sr_nat_mapping *mapping;
   sr_ip_hdr_t *ip_header = (sr_ip_hdr_t *)(ip_packet);
   unsigned int icmp_len;
@@ -419,8 +418,9 @@ void handle_nat_icmp(struct sr_instance* sr, uint8_t *ip_packet) {
 
     /* mapping is valid -> translate src ip to public ip*/
     icmp_header->identifier = htons(mapping->aux_ext);
-    ip_ext = get_oif_ip(sr, ip_header->ip_dst);
-    ip_header->ip_src = ip_ext;
+    sr_rt_t *lpm = sr_rt_lookup(sr->routing_table, ip_header->ip_dst);
+    sr_if_t* interface_info = sr_get_interface(sr, lpm->interface);
+    ip_header->ip_src = interface_info->ip;
 
     print_hdr_icmp((uint8_t *)icmp_header);
   } 
@@ -447,33 +447,6 @@ void handle_nat_icmp(struct sr_instance* sr, uint8_t *ip_packet) {
   ip_header->ip_sum = 0;
   ip_header->ip_sum = cksum(ip_header, sizeof(sr_ip_hdr_t));
 }
-
-/* Get outgoing interface ip */
-uint32_t get_oif_ip(struct sr_instance* sr, uint32_t ip_dst) {
-  struct sr_if *oif;
-  struct sr_rt *entry = sr->routing_table;
-  struct sr_rt *match = NULL;
-  int longest_mask = 0;
-
-  /* longest prefix match */
-  while (entry) {
-    uint32_t netid = ntohl(ip_dst) & entry->mask.s_addr;
-    if (ntohl(entry->gw.s_addr) == netid) {
-      if (longest_mask < entry->mask.s_addr) {
-        longest_mask = entry->mask.s_addr;
-        match = entry;
-      }
-    }
-    entry = entry->next;
-  }
-
-  if (match == NULL) {
-    return 0;
-  }
-  oif = sr_get_interface(sr, match->interface);
-  return oif->ip;
-}
-
 
 /*---------------------------------------------------------------------
  * Method: sr_send_arp
