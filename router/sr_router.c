@@ -347,10 +347,12 @@ void sr_handle_ippacket(struct sr_instance* sr,
         /* If it is an echo, reply*/
         sr_send_icmp(sr, packet, interface, icmp_type_echoreply, 0);
       } else {
+        /*
         if (sr->nat_enabled && icmp_header->icmp_type == 0) {
+          handle_nat_icmp(sr, packet);
           sr_forward_ippacket(sr, (sr_ip_hdr_t*) packet, len, interface);
           return;
-        }
+        }*/
 
         /* Otherwise, we don't handle it*/
         fprintf(stderr, "ICMP message received, no action taken \n");
