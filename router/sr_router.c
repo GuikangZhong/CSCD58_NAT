@@ -382,12 +382,19 @@ void sr_handle_ippacket(struct sr_instance* sr,
       /* Change the internal IP to external IP */
       handle_nat_icmp(sr, packet);
     }
+    else if (sr->nat_enabled && protocol == ip_protocol_tcp) {
+      handle_nat_tcp(sr, packet);
+    }
 
     /* Destined somewhere else so we forward packet!*/
     sr_forward_ippacket(sr, (sr_ip_hdr_t*) packet, len, interface);
   }
   return;
 } /* end sr_handle_ippacket */
+
+void handle_nat_tcp(struct sr_instance* sr, uint8_t *ip_packet) {
+  return;
+}
 
 void handle_nat_icmp(struct sr_instance* sr, uint8_t *ip_packet) {
   struct sr_nat_mapping *mapping;
@@ -446,6 +453,8 @@ void handle_nat_icmp(struct sr_instance* sr, uint8_t *ip_packet) {
   icmp_header->icmp_sum = cksum(icmp_header, icmp_len);
   ip_header->ip_sum = 0;
   ip_header->ip_sum = cksum(ip_header, sizeof(sr_ip_hdr_t));
+
+  free(mapping);
 }
 
 /*---------------------------------------------------------------------
