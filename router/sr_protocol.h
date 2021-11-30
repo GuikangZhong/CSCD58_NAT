@@ -243,6 +243,15 @@ struct sr_tcp_pseudo_hdr {
 }__attribute__ ((packed));
 typedef struct sr_tcp_pseudo_hdr sr_tcp_pseudo_hdr_t;
 
+/*struct sr_tcp_pseudo_hdr {
+  uint32_t src_ip;
+  uint32_t dst_ip;
+  uint16_t tcp_len;
+  uint8_t protocol;
+  uint8_t reserved;
+}__attribute__ ((packed));
+typedef struct sr_tcp_pseudo_hdr sr_tcp_pseudo_hdr_t;*/
+
 /*-----------------------------------------------------------------------------
                                   ICMP Packets
   ----------------------------------------------------------------------------*/
