@@ -450,6 +450,8 @@ void handle_nat_tcp(struct sr_instance* sr, uint8_t *ip_packet, unsigned int ip_
   uint8_t *temp_buffer = malloc(sizeof(pseudo_hdr->tcp_len));
   memcpy(temp_buffer, pseudo_hdr, sizeof(sr_tcp_pseudo_hdr_t));
   memcpy(temp_buffer + sizeof(sr_tcp_pseudo_hdr_t), ip_packet + ip_header_len, ip_packet_len - ip_header_len);
+  tcp_header->checksum = cksum(temp_buffer, pseudo_hdr->tcp_len);
+  free(temp_buffer);
   free(mapping);
   
   return;
