@@ -454,7 +454,10 @@ void handle_nat_tcp(struct sr_instance* sr, uint8_t *ip_packet, unsigned int ip_
   tcp_header->checksum = 0;
   uint8_t *temp_buffer = malloc(ntohs(pseudo_hdr->tcp_len));
   memcpy(temp_buffer, pseudo_hdr, sizeof(sr_tcp_pseudo_hdr_t));
+  print_hdr_ip(temp_buffer);
   memcpy(temp_buffer + sizeof(sr_tcp_pseudo_hdr_t), ip_packet + ip_header_len, ip_packet_len - ip_header_len);
+  print_hdr_ip(temp_buffer);
+  print_hdr_tcp(temp_buffer + sizeof(sr_tcp_pseudo_hdr_t));
   tcp_header->checksum = cksum(temp_buffer, ntohs(pseudo_hdr->tcp_len));
   
   ip_header->ip_sum = 0;
