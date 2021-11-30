@@ -444,13 +444,22 @@ void handle_nat_tcp(struct sr_instance* sr, uint8_t *ip_packet, unsigned int ip_
   pseudo_hdr->dst_ip = ip_header->ip_dst;
   pseudo_hdr->reserved = 0;
   pseudo_hdr->protocol = ip_header->ip_p;
-  pseudo_hdr->tcp_len = sizeof(sr_tcp_pseudo_hdr_t) + ip_packet_len - ip_header_len;
+  pseudo_hdr->tcp_len = htons(sizeof(sr_tcp_pseudo_hdr_t) + ip_packet_len - ip_header_len);
+  printf("ip packet length: %d\n", ip_packet_len);
+  printf("ip header length: %d\n", ip_header_len);
+  printf("tcp length1: %d\n", ntohs(pseudo_hdr->tcp_len));
+  printf("tcp length2: %d\n", tcp_header->data_offset * 4);
   /* update check sum */
-  tcp_header->checksum = 0;
-  uint8_t *temp_buffer = malloc(sizeof(pseudo_hdr->tcp_len));
+  uint8_t *temp_buffer = malloc(ntohs(pseudo_hdr->tcp_len));
   memcpy(temp_buffer, pseudo_hdr, sizeof(sr_tcp_pseudo_hdr_t));
   memcpy(temp_buffer + sizeof(sr_tcp_pseudo_hdr_t), ip_packet + ip_header_len, ip_packet_len - ip_header_len);
-  tcp_header->checksum = cksum(temp_buffer, pseudo_hdr->tcp_len);
+  tcp_header->checksum = 0;
+  tcp_header->checksum = cksum(temp_buffer, ntohs(pseudo_hdr->tcp_len));
+  
+  ip_header->ip_sum = 0;
+  ip_header->ip_sum = cksum(ip_header, sizeof(sr_ip_hdr_t));
+  
+  free(pseudo_hdr);
   free(temp_buffer);
   free(mapping);
   
