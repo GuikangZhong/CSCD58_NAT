@@ -460,7 +460,7 @@ void handle_nat_tcp(struct sr_instance* sr, uint8_t *ip_packet, unsigned int ip_
   print_hdr_ip(ip_header);
   print_hdr_ip(temp_buffer);
   print_hdr_tcp(temp_buffer + sizeof(sr_tcp_pseudo_hdr_t));
-  tcp_header->checksum = cksum(temp_buffer, ntohs(pseudo_hdr->tcp_len));
+  tcp_header->checksum = cksum(temp_buffer, sizeof(sr_tcp_pseudo_hdr_t) + ip_packet_len - ip_header_len);
   
   ip_header->ip_sum = 0;
   ip_header->ip_sum = cksum(ip_header, sizeof(sr_ip_hdr_t));
