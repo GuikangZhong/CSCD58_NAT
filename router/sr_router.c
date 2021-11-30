@@ -350,11 +350,9 @@ void sr_handle_ippacket(struct sr_instance* sr,
         sr_send_icmp(sr, packet, interface, icmp_type_echoreply, 0);
       } else {
         
-        if (sr->nat_enabled && icmp_header->icmp_type == 0) {
-          /* Change the internal IP to external IP */
-          handle_nat_icmp(sr, packet);
-          /* Destined somewhere else so we forward packet!*/
-          sr_forward_ippacket(sr, (sr_ip_hdr_t*) packet, len, interface);
+        /* if nat is enabled and we can find a match in NAT */
+        if (sr->nat_enabled && handle_nat_icmp(sr, packet)) {
+            sr_forward_ippacket(sr, (sr_ip_hdr_t*) packet, len, interface);
           return;
         }
 
@@ -363,6 +361,11 @@ void sr_handle_ippacket(struct sr_instance* sr,
         return;
       }
     } else if (protocol == ip_protocol_tcp || protocol == ip_protocol_udp) {
+      /* if nat is enabled and we can find a match in NAT */
+      if (sr->nat_enabled && handle_nat_tcp(sr, packet, len)) {
+          sr_forward_ippacket(sr, (sr_ip_hdr_t*) packet, len, interface);
+        return;
+      }
       /* Send ICMP port unreacheable for traceroute
        * in case of udp or tcp protocol*/
       sr_send_icmp(sr, packet, interface, icmp_type_dstunreachable, 3);
@@ -392,7 +395,7 @@ void sr_handle_ippacket(struct sr_instance* sr,
   return;
 } /* end sr_handle_ippacket */
 
-void handle_nat_tcp(struct sr_instance* sr, uint8_t *ip_packet, unsigned int ip_packet_len) {
+int handle_nat_tcp(struct sr_instance* sr, uint8_t *ip_packet, unsigned int ip_packet_len) {
   struct sr_nat_mapping *mapping;
   sr_ip_hdr_t *ip_header = (sr_ip_hdr_t *)(ip_packet);
   unsigned int ip_header_len = (ip_header->ip_hl)*4;
@@ -402,7 +405,7 @@ void handle_nat_tcp(struct sr_instance* sr, uint8_t *ip_packet, unsigned int ip_
   
   /* internal to internal */
   if (is_private_ip(ntohl(ip_header->ip_src)) && is_private_ip(ntohl(ip_header->ip_dst))) {
-    return ;
+    return 0;
   }
 
   /* internal to external */
@@ -434,7 +437,7 @@ void handle_nat_tcp(struct sr_instance* sr, uint8_t *ip_packet, unsigned int ip_
       ip_header->ip_dst = htonl(mapping->ip_int);
     } else {
       /* external to external */
-      return ;
+      return 0;
     }
   }
 
@@ -444,13 +447,8 @@ void handle_nat_tcp(struct sr_instance* sr, uint8_t *ip_packet, unsigned int ip_
   pseudo_hdr->dst_ip = ip_header->ip_dst;
   pseudo_hdr->reserved = 0;
   pseudo_hdr->protocol = ip_header->ip_p;
-  /*pseudo_hdr->tcp_len = htons(sizeof(sr_tcp_pseudo_hdr_t) + ip_packet_len - ip_header_len);*/
   pseudo_hdr->tcp_len = htons(ip_packet_len - ip_header_len);
-  printf("ip packet length: %d\n", ip_packet_len);
-  printf("ip header length: %d\n", ip_header_len);
-  printf("tcp length1: %d\n", ntohs(pseudo_hdr->tcp_len));
-  printf("tcp length2: %d\n", tcp_header->data_offset * 4);
-  
+
   /* update check sum */
   tcp_header->checksum = 0;
   uint8_t *temp_buffer = malloc(ntohs(pseudo_hdr->tcp_len));
@@ -466,10 +464,10 @@ void handle_nat_tcp(struct sr_instance* sr, uint8_t *ip_packet, unsigned int ip_
   free(temp_buffer);
   free(mapping);
   
-  return;
+  return 1;
 }
 
-void handle_nat_icmp(struct sr_instance* sr, uint8_t *ip_packet) {
+int handle_nat_icmp(struct sr_instance* sr, uint8_t *ip_packet) {
   struct sr_nat_mapping *mapping;
   sr_ip_hdr_t *ip_header = (sr_ip_hdr_t *)(ip_packet);
   unsigned int icmp_len;
@@ -480,7 +478,7 @@ void handle_nat_icmp(struct sr_instance* sr, uint8_t *ip_packet) {
 
   /* internal to internal */
   if (is_private_ip(ntohl(ip_header->ip_src)) && is_private_ip(ntohl(ip_header->ip_dst))) {
-    return ;
+    return 0;
   }
 
   /* internal to external */
@@ -515,7 +513,7 @@ void handle_nat_icmp(struct sr_instance* sr, uint8_t *ip_packet) {
       ip_header->ip_dst = htonl(mapping->ip_int);
     } else {
       /* external to external */
-      return ;
+      return 0;
     }
 
   }
@@ -528,6 +526,7 @@ void handle_nat_icmp(struct sr_instance* sr, uint8_t *ip_packet) {
   ip_header->ip_sum = cksum(ip_header, sizeof(sr_ip_hdr_t));
 
   free(mapping);
+  return 1;
 }
 
 /*---------------------------------------------------------------------
