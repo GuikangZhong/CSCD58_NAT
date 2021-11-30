@@ -383,7 +383,7 @@ void sr_handle_ippacket(struct sr_instance* sr,
       handle_nat_icmp(sr, packet);
     }
     else if (sr->nat_enabled && protocol == ip_protocol_tcp) {
-      handle_nat_tcp(sr, packet);
+      handle_nat_tcp(sr, packet, len);
     }
 
     /* Destined somewhere else so we forward packet!*/
@@ -392,12 +392,66 @@ void sr_handle_ippacket(struct sr_instance* sr,
   return;
 } /* end sr_handle_ippacket */
 
-void handle_nat_tcp(struct sr_instance* sr, uint8_t *ip_packet) {
+void handle_nat_tcp(struct sr_instance* sr, uint8_t *ip_packet, unsigned int ip_packet_len) {
+  struct sr_nat_mapping *mapping;
   sr_ip_hdr_t *ip_header = (sr_ip_hdr_t *)(ip_packet);
-  unsigned int icmp_len;
   unsigned int ip_header_len = (ip_header->ip_hl)*4;
   sr_tcp_hdr_t *tcp_header = (sr_tcp_hdr_t *)(ip_packet + ip_header_len);
-  print_hdr_tcp((uint8_t *)tcp_header);
+  printf("[NAT]: TCP packet arrived! \n");
+  
+  
+  /* internal to internal */
+  if (is_private_ip(ntohl(ip_header->ip_src)) && is_private_ip(ntohl(ip_header->ip_dst))) {
+    return ;
+  }
+
+  /* internal to external */
+  print_addr_ip_int(ntohl(ip_header->ip_src));
+  if (is_private_ip(ntohl(ip_header->ip_src)))
+  {
+    printf("[NAT]: internal -> external\n");
+    print_hdr_tcp((uint8_t *)tcp_header);
+    mapping = sr_nat_lookup_internal(&sr->nat, ntohl(ip_header->ip_src), ntohs(tcp_header->src_port), nat_mapping_icmp);
+    /* if empty or time out -> insert */
+    if (!mapping) {
+      mapping = sr_nat_insert_mapping(&sr->nat, ntohl(ip_header->ip_src), ntohs(tcp_header->src_port), nat_mapping_icmp);
+    } 
+
+    /* mapping is valid -> translate src ip to public ip*/
+    tcp_header->src_port = htons(mapping->aux_ext);
+    sr_rt_t *lpm = sr_rt_lookup(sr->routing_table, ip_header->ip_dst);
+    sr_if_t* interface_info = sr_get_interface(sr, lpm->interface);
+    ip_header->ip_src = interface_info->ip;
+  }
+  /* external to internal s->c */
+  else 
+  {
+    printf("[NAT]: external -> internal\n");
+    mapping = sr_nat_lookup_external(&sr->nat, ntohs(tcp_header->dst_port), nat_mapping_icmp);
+    /* if mapping is valid -> translate dst ip to private ip*/
+    if (mapping) {
+      tcp_header->dst_port = htons(mapping->aux_int);
+      ip_header->ip_dst = htonl(mapping->ip_int);
+    } else {
+      /* external to external */
+      return ;
+    }
+  }
+
+  /* construct pseudo tcp header */
+  sr_tcp_pseudo_hdr_t *pseudo_hdr = malloc(sizeof(sr_tcp_pseudo_hdr_t));
+  pseudo_hdr->src_ip = ip_header->ip_src;
+  pseudo_hdr->dst_ip = ip_header->ip_dst;
+  pseudo_hdr->reserved = 0;
+  pseudo_hdr->protocol = ip_header->ip_p;
+  pseudo_hdr->tcp_len = sizeof(sr_tcp_pseudo_hdr_t) + ip_packet_len - ip_header_len;
+  /* update check sum */
+  tcp_header->checksum = 0;
+  uint8_t *temp_buffer = malloc(sizeof(pseudo_hdr->tcp_len));
+  memcpy(temp_buffer, pseudo_hdr, sizeof(sr_tcp_pseudo_hdr_t));
+  memcpy(temp_buffer + sizeof(sr_tcp_pseudo_hdr_t), ip_packet + ip_header_len, ip_packet_len - ip_header_len);
+  free(mapping);
+  
   return;
 }
 
