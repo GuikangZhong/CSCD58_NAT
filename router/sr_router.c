@@ -362,7 +362,7 @@ void sr_handle_ippacket(struct sr_instance* sr,
       }
     } else if (protocol == ip_protocol_tcp || protocol == ip_protocol_udp) {
       /* if nat is enabled and we can find a match in NAT */
-      if (sr->nat_enabled && handle_nat_tcp(sr, packet, len)) {
+      if (sr->nat_enabled && protocol == ip_protocol_tcp && handle_nat_tcp(sr, packet, len)) {
           sr_forward_ippacket(sr, (sr_ip_hdr_t*) packet, len, interface);
         return;
       }
