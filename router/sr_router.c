@@ -351,7 +351,7 @@ void sr_handle_ippacket(struct sr_instance* sr,
       } else {
         
         /* if nat is enabled and we can find a match in NAT */
-        if (sr->nat_enabled && handle_nat_icmp(sr, packet)) {
+        if (sr->nat_enabled && icmp_header->icmp_type == 0 && handle_nat_icmp(sr, packet)) {
             sr_forward_ippacket(sr, (sr_ip_hdr_t*) packet, len, interface);
           return;
         }
