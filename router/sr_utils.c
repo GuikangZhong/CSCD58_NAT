@@ -114,12 +114,6 @@ void print_hdr_ip(uint8_t *buf) {
   print_addr_ip_int(ntohl(iphdr->ip_dst));
 }
 
-print_pseudo_header(uint8_t *buf){
-  sr_tcp_pseudo_hdr_t pseudo_header = (sr_tcp_pseudo_hdr_t *)(buf);
-  fprintf(stderr, "pseudo header:\n");
-
-}
-
 /* Prints out TCP header fields */
 void print_hdr_tcp(uint8_t *buf) {
   sr_tcp_hdr_t *tcp_hdr = (sr_tcp_hdr_t *)(buf);
