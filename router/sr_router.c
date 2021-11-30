@@ -443,29 +443,27 @@ int handle_nat_tcp(struct sr_instance* sr, uint8_t *ip_packet, unsigned int ip_p
     }
   }
 
-  /* construct pseudo tcp header */
-  sr_tcp_pseudo_hdr_t *pseudo_hdr = malloc(sizeof(sr_tcp_pseudo_hdr_t));
+  /* update check sum */
+  tcp_header->checksum = 0;
+  int tcp_segment_len = ip_packet_len - ip_header_len;
+  int temp_buffer_len = sizeof(sr_tcp_pseudo_hdr_t)+tcp_segment_len;
+  uint8_t *temp_buffer = malloc(temp_buffer_len);
+
+  sr_tcp_pseudo_hdr_t *pseudo_hdr = (sr_tcp_pseudo_hdr_t *)temp_buffer;
   pseudo_hdr->src_ip = ip_header->ip_src;
   pseudo_hdr->dst_ip = ip_header->ip_dst;
   pseudo_hdr->reserved = 0;
   pseudo_hdr->protocol = ip_header->ip_p;
-  pseudo_hdr->tcp_len = htons(ip_packet_len - ip_header_len);
-
-  /* update check sum */
-  tcp_header->checksum = 0;
-  uint8_t *temp_buffer = malloc(ntohs(pseudo_hdr->tcp_len));
-  memcpy(temp_buffer, pseudo_hdr, sizeof(sr_tcp_pseudo_hdr_t));
-  memcpy(temp_buffer + sizeof(sr_tcp_pseudo_hdr_t), ip_packet + ip_header_len, ip_packet_len - ip_header_len);
-    print_hdr_tcp(temp_buffer + sizeof(sr_tcp_pseudo_hdr_t));
-  tcp_header->checksum = cksum(temp_buffer, sizeof(sr_tcp_pseudo_hdr_t) + htons(pseudo_hdr->tcp_len));
+  pseudo_hdr->tcp_len = htons(tcp_segment_len);
+  memcpy(temp_buffer + sizeof(sr_tcp_pseudo_hdr_t), ip_packet + ip_header_len, tcp_segment_len);
+  tcp_header->checksum = cksum(temp_buffer, temp_buffer_len);
   
   ip_header->ip_sum = 0;
   ip_header->ip_sum = cksum(ip_header, sizeof(sr_ip_hdr_t));
   
-  free(pseudo_hdr);
   free(temp_buffer);
   free(mapping);
-  
+
   return 1;
 }
 
