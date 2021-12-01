@@ -415,10 +415,10 @@ int handle_nat_tcp(struct sr_instance* sr, uint8_t *ip_packet, unsigned int ip_p
   if (is_private_ip(ntohl(ip_header->ip_src))) {
     printf("[NAT]: internal -> external\n");
     print_hdr_tcp((uint8_t *)tcp_header);
-    mapping = sr_nat_lookup_internal(&sr->nat, ntohl(ip_header->ip_src), ntohs(tcp_header->src_port), nat_mapping_icmp);
+    mapping = sr_nat_lookup_internal(&sr->nat, ntohl(ip_header->ip_src), ntohs(tcp_header->src_port), nat_mapping_tcp);
     /* if empty or time out -> insert */
     if (!mapping) {
-      mapping = sr_nat_insert_mapping(&sr->nat, ntohl(ip_header->ip_src), ntohs(tcp_header->src_port), nat_mapping_icmp);
+      mapping = sr_nat_insert_mapping(&sr->nat, ntohl(ip_header->ip_src), ntohs(tcp_header->src_port), nat_mapping_tcp);
     } 
 
     /* mapping is valid -> translate src ip to public ip*/
@@ -435,13 +435,31 @@ int handle_nat_tcp(struct sr_instance* sr, uint8_t *ip_packet, unsigned int ip_p
      * During this interval, if the NAT receives and translate outbound (internal -> external) SYN,
      * the NAT should silently drop the inbound SYN */
 
-    mapping = sr_nat_lookup_external(&sr->nat, ntohs(tcp_header->dst_port), nat_mapping_icmp);
+    mapping = sr_nat_lookup_external(&sr->nat, ntohs(tcp_header->dst_port), nat_mapping_tcp);
     /* if mapping is valid -> translate dst ip to private ip*/
     if (mapping) {
       tcp_header->dst_port = htons(mapping->aux_int);
       ip_header->ip_dst = htonl(mapping->ip_int);
-    } else {
-      /* external to external */
+    } 
+    /* unsolicited inbound SYN packet */
+    else if (tcp_header->SYN == 1) {
+      int i = 0;
+      while(i<6 && (mapping = sr_nat_lookup_external(&sr->nat, ntohs(tcp_header->dst_port), nat_mapping_tcp))) {
+        i++;
+      }
+      /* if the NAT doesn't receives an outbound SYN during the 6s interval*/
+      if (!mapping) {
+        /* send icmp(3,3) for the original packet*/
+        sr_rt_t *lpm = sr_rt_lookup(sr->routing_table, ip_header->ip_dst);
+        sr_send_icmp(sr, ip_packet, lpm->interface, icmp_type_dstunreachable, 3);
+      } else {
+        /* drop the packet sliently */
+        return 0;
+      }
+    }
+    /* external to external */
+    else
+    {
       return 0;
     }
   }
