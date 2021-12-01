@@ -73,7 +73,7 @@ uint32_t ip_broadcast_addr;
  *
  *---------------------------------------------------------------------*/
 
-void sr_init(struct sr_instance* sr)
+void sr_init(struct sr_instance* sr, unsigned int icmp_query_to, unsigned int tcp_estab_idle_to, unsigned int tcp_transitory_to)
 {
 
     /* REQUIRES */
@@ -83,7 +83,7 @@ void sr_init(struct sr_instance* sr)
     sr_arpcache_init(&(sr->cache));
 
     /* Initialize NAT */
-    sr_nat_init(&(sr->nat));
+    sr_nat_init(&(sr->nat), icmp_query_to, tcp_estab_idle_to, tcp_transitory_to);
 
     pthread_attr_init(&(sr->attr));
     pthread_attr_setdetachstate(&(sr->attr), PTHREAD_CREATE_JOINABLE);
@@ -412,8 +412,7 @@ int handle_nat_tcp(struct sr_instance* sr, uint8_t *ip_packet, unsigned int ip_p
 
   /* internal to external */
   print_addr_ip_int(ntohl(ip_header->ip_src));
-  if (is_private_ip(ntohl(ip_header->ip_src)))
-  {
+  if (is_private_ip(ntohl(ip_header->ip_src))) {
     printf("[NAT]: internal -> external\n");
     print_hdr_tcp((uint8_t *)tcp_header);
     mapping = sr_nat_lookup_internal(&sr->nat, ntohl(ip_header->ip_src), ntohs(tcp_header->src_port), nat_mapping_icmp);
@@ -429,9 +428,13 @@ int handle_nat_tcp(struct sr_instance* sr, uint8_t *ip_packet, unsigned int ip_p
     ip_header->ip_src = interface_info->ip;
   }
   /* external to internal s->c */
-  else 
-  {
+  else {
     printf("[NAT]: external -> internal\n");
+
+    /* check whether it is inbound (external -> internal) SYN. If it is, wait for six seconds.
+     * During this interval, if the NAT receives and translate outbound (internal -> external) SYN,
+     * the NAT should silently drop the inbound SYN */
+
     mapping = sr_nat_lookup_external(&sr->nat, ntohs(tcp_header->dst_port), nat_mapping_icmp);
     /* if mapping is valid -> translate dst ip to private ip*/
     if (mapping) {
