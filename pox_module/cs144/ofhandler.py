@@ -193,6 +193,7 @@ def get_ip_setting():
 
   RTABLE.append( ('%s' % IP_SETTING['client1'], '%s' % IP_SETTING['client1'], '255.255.255.255', 'eth1') )
   RTABLE.append( ('%s' % IP_SETTING['client2'], '%s' % IP_SETTING['client2'], '255.255.255.255', 'eth4') )
+  RTABLE.append( ('%s' % IP_SETTING['client3'], '%s' % IP_SETTING['client3'], '255.255.255.255', 'eth5') )
   RTABLE.append( ('%s' % IP_SETTING['server1'], '%s' % IP_SETTING['server1'], '255.255.255.255', 'eth2') )
   RTABLE.append( ('%s' % IP_SETTING['server2'], '%s' % IP_SETTING['server2'], '255.255.255.255', 'eth3') )
 
@@ -201,6 +202,7 @@ def get_ip_setting():
   ROUTER_IP['eth2'] = '%s' % IP_SETTING['sw0-eth2']
   ROUTER_IP['eth3'] = '%s' % IP_SETTING['sw0-eth3']
   ROUTER_IP['eth4'] = '%s' % IP_SETTING['sw0-eth4']
+  ROUTER_IP['eth5'] = '%s' % IP_SETTING['sw0-eth5']
   return 0
 
 def launch (transparent=False):
