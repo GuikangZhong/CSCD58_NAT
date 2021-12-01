@@ -446,6 +446,7 @@ int handle_nat_tcp(struct sr_instance* sr, uint8_t *ip_packet, unsigned int ip_p
       printf("[NAT]: inboud SYN\n");
       int i = 0;
       while(i<6 && (mapping = sr_nat_lookup_external(&sr->nat, ntohs(tcp_header->dst_port), nat_mapping_tcp))) {
+        sleep(1);
         i++;
         printf("%d\n",i);
       }
