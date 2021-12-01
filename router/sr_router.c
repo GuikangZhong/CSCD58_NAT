@@ -435,7 +435,7 @@ int handle_nat_tcp(struct sr_instance* sr, uint8_t *ip_packet, unsigned int ip_p
     /* check whether it is inbound (external -> internal) SYN. If it is, wait for six seconds.
      * During this interval, if the NAT receives and translate outbound (internal -> external) SYN,
      * the NAT should silently drop the inbound SYN */
-
+    return 0;
     mapping = sr_nat_lookup_external(&sr->nat, ntohs(tcp_header->dst_port), nat_mapping_tcp);
     /* if mapping is valid -> translate dst ip to private ip*/
     if (mapping) {
