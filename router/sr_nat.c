@@ -10,7 +10,7 @@
 #include "sr_utils.h"
 #include "sr_protocol.h"
 
-int sr_nat_init(struct sr_nat *nat) { /* Initializes the nat */
+int sr_nat_init(struct sr_nat *nat, unsigned int icmp_query_to, unsigned int tcp_estab_idle_to, unsigned int tcp_transitory_to) { /* Initializes the nat */
 
   assert(nat);
 
@@ -32,6 +32,9 @@ int sr_nat_init(struct sr_nat *nat) { /* Initializes the nat */
   nat->mappings = NULL;
   /* Initialize any variables here */
   nat->ext_id = DEFAULT_ID;
+  nat->icmp_query_to = icmp_query_to;
+  nat->tcp_estab_idle_to = tcp_estab_idle_to;
+  nat->tcp_transitory_to = tcp_transitory_to;
 
   return success;
 }
@@ -64,7 +67,7 @@ void *sr_nat_timeout(void *nat_ptr) {  /* Periodic Timout handling */
     struct sr_nat_mapping *curr = nat->mappings;
 
     while (curr != NULL) {
-      if (difftime(curtime, curr->last_updated)>NAT_MAPPING_TO) {
+      if (difftime(curtime, curr->last_updated) > nat->icmp_query_to) {
         prev->next = curr->next;
         curr = curr->next;
       } else {

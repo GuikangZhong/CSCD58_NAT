@@ -7,7 +7,9 @@
 #include <pthread.h>
 
 #define DEFAULT_ID 1024
-#define NAT_MAPPING_TO 60
+#define DEFAULT_ICMP_QUERY_TO 60
+#define DEFAULT_TCP_ESTABLISHED_TO 7440
+#define DEFAULT_TCP_TRANSITORY_TO 300
 
 typedef enum {
   nat_mapping_icmp,
@@ -15,9 +17,23 @@ typedef enum {
   /* nat_mapping_udp, */
 } sr_nat_mapping_type;
 
+typedef enum {
+  CLOSED,
+  LISTEN,
+  SYN_SENT,
+  SYN_RCVD,
+  ESTAB,
+  FIN_WAIT_1,
+  FIN_WAIT_2,
+  CLOSING,
+  TIME_WAIT,
+  CLOST_WAIT,
+  LAST_ACK
+} sr_tcp_state_type;
+
 struct sr_nat_connection {
   /* add TCP connection state data members here */
-
+  sr_tcp_state_type state;
   struct sr_nat_connection *next;
 };
 
@@ -35,6 +51,9 @@ struct sr_nat_mapping {
 struct sr_nat {
   /* add any fields here */
   struct sr_nat_mapping *mappings;
+  unsigned int icmp_query_to; /* icmp query timeout */
+  unsigned int tcp_estab_idle_to; /* tcp established timeout */
+  unsigned int tcp_transitory_to; /* tcp transitory timeout */
 
   /* use for external port or icmp id */
   int ext_id;
@@ -47,7 +66,7 @@ struct sr_nat {
 };
 
 
-int   sr_nat_init(struct sr_nat *nat);     /* Initializes the nat */
+int   sr_nat_init(struct sr_nat *nat, unsigned int icmp_query_to, unsigned int tcp_estab_idle_to, unsigned int tcp_transitory_to);     /* Initializes the nat */
 int   sr_nat_destroy(struct sr_nat *nat);  /* Destroys the nat (free memory) */
 void *sr_nat_timeout(void *nat_ptr);  /* Periodic Timout */
 

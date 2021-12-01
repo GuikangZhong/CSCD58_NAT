@@ -32,6 +32,7 @@
 #include "sr_dumper.h"
 #include "sr_router.h"
 #include "sr_rt.h"
+#include "sr_nat.h"
 
 extern char* optarg;
 
@@ -68,6 +69,9 @@ int main(int argc, char **argv)
     struct sr_instance sr;
 
     /* nat */
+    unsigned int icmp_query_to = DEFAULT_ICMP_QUERY_TO;
+    unsigned int tcp_estab_idle_to = DEFAULT_TCP_ESTABLISHED_TO;
+    unsigned int tcp_transitory_to = DEFAULT_TCP_TRANSITORY_TO;
     int nat_enabled = 0;
 
     printf("Using %s\n", VERSION_INFO);
@@ -107,6 +111,12 @@ int main(int argc, char **argv)
             case 'n':
                 nat_enabled = 1;
                 break;
+            case 'I':
+                icmp_query_to = atoi(optarg);
+            case 'E':
+                tcp_estab_idle_to = atoi(optarg);
+            case 'R':
+                tcp_transitory_to = atoi(optarg);
         } /* switch */
     } /* -- while -- */
 
@@ -163,7 +173,7 @@ int main(int argc, char **argv)
     }
 
     /* call router init (for arp subsystem etc.) */
-    sr_init(&sr);
+    sr_init(&sr, icmp_query_to, tcp_estab_idle_to, tcp_transitory_to);
 
     /* -- whizbang main loop ;-) */
     while( sr_read_from_server(&sr) == 1);
