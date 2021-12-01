@@ -403,9 +403,7 @@ int handle_nat_tcp(struct sr_instance* sr, uint8_t *ip_packet, unsigned int ip_p
   unsigned int ip_header_len = (ip_header->ip_hl)*4;
   sr_tcp_hdr_t *tcp_header = (sr_tcp_hdr_t *)(ip_packet + ip_header_len);
   printf("[NAT]: TCP packet arrived! \n");
-  printf("src: ");
   print_addr_ip_int(ntohl(ip_header->ip_src));
-  printf("dst: ");
   print_addr_ip_int(ntohl(ip_header->ip_dst));
   
   
@@ -448,8 +446,10 @@ int handle_nat_tcp(struct sr_instance* sr, uint8_t *ip_packet, unsigned int ip_p
     else if (tcp_header->SYN == 1) {
       printf("[NAT]: inboud SYN\n");
       int i = 0;
-      while(i<6 && (mapping = sr_nat_lookup_external(&sr->nat, ntohs(tcp_header->dst_port), nat_mapping_tcp))) {
+      mapping = sr_nat_lookup_external(&sr->nat, ntohs(tcp_header->dst_port), nat_mapping_tcp);
+      while(i<6 && !mapping) {
         sleep(1.0);
+        mapping = sr_nat_lookup_external(&sr->nat, ntohs(tcp_header->dst_port), nat_mapping_tcp);
         i++;
         printf("%d\n",i);
       }
