@@ -446,7 +446,8 @@ int handle_nat_tcp(struct sr_instance* sr, uint8_t *ip_packet, unsigned int ip_p
     else
     {
       /* if it is unsolicited inbound SYN packet */
-      if (tcp_header->SYN == 1) {
+      /*if (tcp_header->SYN == 1) {*/
+      if (0) {
         printf("[NAT]: inboud SYN\n");
         int i = 0;
         while(i<6 && !mapping) {
