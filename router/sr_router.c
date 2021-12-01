@@ -446,7 +446,6 @@ int handle_nat_tcp(struct sr_instance* sr, uint8_t *ip_packet, unsigned int ip_p
     else if (tcp_header->SYN == 1) {
       printf("[NAT]: inboud SYN\n");
       int i = 0;
-      mapping = sr_nat_lookup_external(&sr->nat, ntohs(tcp_header->dst_port), nat_mapping_tcp);
       while(i<6 && !mapping) {
         sleep(1.0);
         mapping = sr_nat_lookup_external(&sr->nat, ntohs(tcp_header->dst_port), nat_mapping_tcp);
@@ -459,6 +458,7 @@ int handle_nat_tcp(struct sr_instance* sr, uint8_t *ip_packet, unsigned int ip_p
         printf("[NAT]: inboud SYN, sending icmp(3,3)\n");
         sr_rt_t *lpm = sr_rt_lookup(sr->routing_table, ip_header->ip_src);
         sr_send_icmp(sr, ip_packet, lpm->interface, icmp_type_dstunreachable, 3);
+        return 0;
       } else {
         /* drop the packet sliently */
         return 0;
