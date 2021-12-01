@@ -388,7 +388,10 @@ void sr_handle_ippacket(struct sr_instance* sr,
       handle_nat_icmp(sr, packet);
     }
     else if (sr->nat_enabled && protocol == ip_protocol_tcp) {
-      handle_nat_tcp(sr, packet, len);
+      int success = handle_nat_tcp(sr, packet, len);
+      if (!success) {
+        return;
+      }
     }
 
     /* Destined somewhere else so we forward packet!*/
@@ -432,10 +435,10 @@ int handle_nat_tcp(struct sr_instance* sr, uint8_t *ip_packet, unsigned int ip_p
   else {
     printf("[NAT]: external -> internal\n");
 
+    return 0;
     /* check whether it is inbound (external -> internal) SYN. If it is, wait for six seconds.
      * During this interval, if the NAT receives and translate outbound (internal -> external) SYN,
      * the NAT should silently drop the inbound SYN */
-    return 0;
     mapping = sr_nat_lookup_external(&sr->nat, ntohs(tcp_header->dst_port), nat_mapping_tcp);
     /* if mapping is valid -> translate dst ip to private ip*/
     if (mapping) {
@@ -446,8 +449,7 @@ int handle_nat_tcp(struct sr_instance* sr, uint8_t *ip_packet, unsigned int ip_p
     else
     {
       /* if it is unsolicited inbound SYN packet */
-      /*if (tcp_header->SYN == 1) {*/
-      if (0) {
+      if (tcp_header->SYN == 1) {
         printf("[NAT]: inboud SYN\n");
         int i = 0;
         while(i<6 && !mapping) {
@@ -460,8 +462,8 @@ int handle_nat_tcp(struct sr_instance* sr, uint8_t *ip_packet, unsigned int ip_p
         if (!mapping) {
           /* send icmp(3,3) for the original packet*/
           printf("[NAT]: inboud SYN, sending icmp(3,3)\n");
-          /* sr_rt_t *lpm = sr_rt_lookup(sr->routing_table, ip_header->ip_src); */
-          /* sr_send_icmp(sr, ip_packet, lpm->interface, icmp_type_dstunreachable, 3); */
+          sr_rt_t *lpm = sr_rt_lookup(sr->routing_table, ip_header->ip_src);
+          sr_send_icmp(sr, ip_packet, lpm->interface, icmp_type_dstunreachable, 3);
         }
       }
 
