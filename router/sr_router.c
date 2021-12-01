@@ -459,8 +459,8 @@ int handle_nat_tcp(struct sr_instance* sr, uint8_t *ip_packet, unsigned int ip_p
         if (!mapping) {
           /* send icmp(3,3) for the original packet*/
           printf("[NAT]: inboud SYN, sending icmp(3,3)\n");
-          sr_rt_t *lpm = sr_rt_lookup(sr->routing_table, ip_header->ip_src);
-          sr_send_icmp(sr, ip_packet, lpm->interface, icmp_type_dstunreachable, 3);
+          /* sr_rt_t *lpm = sr_rt_lookup(sr->routing_table, ip_header->ip_src); */
+          /* sr_send_icmp(sr, ip_packet, lpm->interface, icmp_type_dstunreachable, 3); */
         }
       }
 
