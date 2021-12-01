@@ -435,7 +435,6 @@ int handle_nat_tcp(struct sr_instance* sr, uint8_t *ip_packet, unsigned int ip_p
   else {
     printf("[NAT]: external -> internal\n");
 
-    return 0;
     /* check whether it is inbound (external -> internal) SYN. If it is, wait for six seconds.
      * During this interval, if the NAT receives and translate outbound (internal -> external) SYN,
      * the NAT should silently drop the inbound SYN */
