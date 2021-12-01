@@ -442,31 +442,29 @@ int handle_nat_tcp(struct sr_instance* sr, uint8_t *ip_packet, unsigned int ip_p
       tcp_header->dst_port = htons(mapping->aux_int);
       ip_header->ip_dst = htonl(mapping->ip_int);
     } 
-    /* unsolicited inbound SYN packet */
-    else if (tcp_header->SYN == 1) {
-      printf("[NAT]: inboud SYN\n");
-      int i = 0;
-      while(i<6 && !mapping) {
-        sleep(1.0);
-        mapping = sr_nat_lookup_external(&sr->nat, ntohs(tcp_header->dst_port), nat_mapping_tcp);
-        i++;
-        printf("%d\n",i);
-      }
-      /* if the NAT doesn't receives an outbound SYN during the 6s interval*/
-      if (!mapping) {
-        /* send icmp(3,3) for the original packet*/
-        printf("[NAT]: inboud SYN, sending icmp(3,3)\n");
-        sr_rt_t *lpm = sr_rt_lookup(sr->routing_table, ip_header->ip_src);
-        sr_send_icmp(sr, ip_packet, lpm->interface, icmp_type_dstunreachable, 3);
-        return 0;
-      } else {
-        /* drop the packet sliently */
-        return 0;
-      }
-    }
     /* external to external */
     else
     {
+      /* if it is unsolicited inbound SYN packet */
+      if (tcp_header->SYN == 1) {
+        printf("[NAT]: inboud SYN\n");
+        int i = 0;
+        while(i<6 && !mapping) {
+          sleep(1.0);
+          mapping = sr_nat_lookup_external(&sr->nat, ntohs(tcp_header->dst_port), nat_mapping_tcp);
+          i++;
+          printf("%d\n",i);
+        }
+        /* if the NAT doesn't receives an outbound SYN during the 6s interval*/
+        if (!mapping) {
+          /* send icmp(3,3) for the original packet*/
+          printf("[NAT]: inboud SYN, sending icmp(3,3)\n");
+          sr_rt_t *lpm = sr_rt_lookup(sr->routing_table, ip_header->ip_src);
+          sr_send_icmp(sr, ip_packet, lpm->interface, icmp_type_dstunreachable, 3);
+        }
+      }
+
+      /* drop the packet sliently */
       return 0;
     }
   }
