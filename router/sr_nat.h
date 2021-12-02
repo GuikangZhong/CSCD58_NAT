@@ -11,6 +11,8 @@
 #define DEFAULT_TCP_ESTABLISHED_TO 7440
 #define DEFAULT_TCP_TRANSITORY_TO 300
 
+struct sr_instance;
+
 typedef enum {
   nat_mapping_icmp,
   nat_mapping_tcp
@@ -34,6 +36,7 @@ typedef enum {
 struct sr_nat_connection {
   /* add TCP connection state data members here */
   sr_tcp_state_type state;
+  uint8_t *ip_packet;
   uint32_t peer_ip;
   uint16_t peer_port;
   uint32_t self_seq_num; /* sequence number */
@@ -71,9 +74,9 @@ struct sr_nat {
 };
 
 
-int   sr_nat_init(struct sr_nat *nat, unsigned int icmp_query_to, unsigned int tcp_estab_idle_to, unsigned int tcp_transitory_to);     /* Initializes the nat */
+int   sr_nat_init(struct sr_instance *sr, unsigned int icmp_query_to, unsigned int tcp_estab_idle_to, unsigned int tcp_transitory_to);     /* Initializes the nat */
 int   sr_nat_destroy(struct sr_nat *nat);  /* Destroys the nat (free memory) */
-void *sr_nat_timeout(void *nat_ptr);  /* Periodic Timout */
+void *sr_nat_timeout(void *sr_ptr);  /* Periodic Timout */
 
 /* Get the mapping associated with given external port.
    You must free the returned structure if it is not NULL. */
@@ -93,7 +96,7 @@ struct sr_nat_mapping *sr_nat_insert_mapping(struct sr_nat *nat,
 struct sr_nat_connection *sr_nat_lookup_connection(struct sr_nat *nat, struct sr_nat_mapping *mapping, 
   uint32_t peer_ip, uint16_t peer_port, uint32_t peer_seq_num);
 
-struct sr_nat_connection *sr_nat_insert_connection(struct sr_nat *nat, uint16_t ext_port, 
+struct sr_nat_connection *sr_nat_insert_connection(struct sr_nat *nat, uint8_t *ip_packet, uint16_t ext_port, 
   uint32_t peer_ip, uint16_t peer_port, uint32_t peer_seq_num);
 
 

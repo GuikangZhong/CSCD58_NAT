@@ -9,11 +9,15 @@
 #include <stdio.h>
 #include "sr_utils.h"
 #include "sr_protocol.h"
+#include "sr_router.h"
+#include "sr_rt.h"
 
-int sr_nat_init(struct sr_nat *nat, unsigned int icmp_query_to, unsigned int tcp_estab_idle_to, unsigned int tcp_transitory_to) { /* Initializes the nat */
+int sr_nat_init(struct sr_instance *sr, unsigned int icmp_query_to, unsigned int tcp_estab_idle_to, unsigned int tcp_transitory_to) { /* Initializes the nat */
 
-  assert(nat);
+  assert(sr);
+  assert(&(sr->nat));
 
+  struct sr_nat *nat = &(sr->nat);
   /* Acquire mutex lock */
   pthread_mutexattr_init(&(nat->attr));
   pthread_mutexattr_settype(&(nat->attr), PTHREAD_MUTEX_RECURSIVE);
@@ -25,7 +29,7 @@ int sr_nat_init(struct sr_nat *nat, unsigned int icmp_query_to, unsigned int tcp
   pthread_attr_setdetachstate(&(nat->thread_attr), PTHREAD_CREATE_JOINABLE);
   pthread_attr_setscope(&(nat->thread_attr), PTHREAD_SCOPE_SYSTEM);
   pthread_attr_setscope(&(nat->thread_attr), PTHREAD_SCOPE_SYSTEM);
-  pthread_create(&(nat->thread), &(nat->thread_attr), sr_nat_timeout, nat);
+  pthread_create(&(nat->thread), &(nat->thread_attr), sr_nat_timeout, sr);
 
   /* CAREFUL MODIFYING CODE ABOVE THIS LINE! */
 
@@ -59,8 +63,9 @@ int sr_nat_destroy(struct sr_nat *nat) {  /* Destroys the nat (free memory) */
 
 }
 
-void *sr_nat_timeout(void *nat_ptr) {  /* Periodic Timout handling */
-  struct sr_nat *nat = (struct sr_nat *)nat_ptr;
+void *sr_nat_timeout(void *sr_ptr) {  /* Periodic Timout handling */
+  struct sr_instance *sr = sr_ptr;
+  struct sr_nat *nat = &(sr->nat);
   while (1) {
     sleep(1.0);
     pthread_mutex_lock(&(nat->lock));
@@ -88,6 +93,10 @@ void *sr_nat_timeout(void *nat_ptr) {  /* Periodic Timout handling */
         struct sr_nat_connection *cur_conn = curr->conns;
         while (cur_conn != NULL) {
           if (cur_conn->state == SYN_SENT && difftime(curtime,cur_conn->last_updated) > 6) {
+
+            sr_rt_t *lpm = sr_rt_lookup(sr->routing_table, cur_conn->peer_ip);
+            sr_send_icmp(sr, cur_conn->ip_packet, lpm->interface, icmp_type_dstunreachable, 3);
+
             pre_conn->next = cur_conn->next;
             free(cur_conn);
             cur_conn = pre_conn->next;
@@ -189,7 +198,7 @@ struct sr_nat_mapping *sr_nat_insert_mapping(struct sr_nat *nat,
   return mapping;
 }
 
-struct sr_nat_connection *sr_nat_insert_connection(struct sr_nat *nat, uint16_t ext_port, 
+struct sr_nat_connection *sr_nat_insert_connection(struct sr_nat *nat, uint8_t *ip_packet, uint16_t ext_port, 
   uint32_t peer_ip, uint16_t peer_port, uint32_t peer_seq_num) {
 
   pthread_mutex_lock(&(nat->lock));
@@ -198,6 +207,7 @@ struct sr_nat_connection *sr_nat_insert_connection(struct sr_nat *nat, uint16_t 
   struct sr_nat_connection *new_entry;
 
   new_entry = (struct sr_nat_connection *)calloc(1, sizeof(struct sr_nat_connection));
+  new_entry->ip_packet = ip_packet;
   new_entry->peer_ip = peer_ip;
   new_entry->peer_port = peer_port;
   new_entry->peer_seq_num = peer_seq_num;

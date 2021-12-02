@@ -83,7 +83,7 @@ void sr_init(struct sr_instance* sr, unsigned int icmp_query_to, unsigned int tc
     sr_arpcache_init(&(sr->cache));
 
     /* Initialize NAT */
-    sr_nat_init(&(sr->nat), icmp_query_to, tcp_estab_idle_to, tcp_transitory_to);
+    sr_nat_init(sr, icmp_query_to, tcp_estab_idle_to, tcp_transitory_to);
 
     pthread_attr_init(&(sr->attr));
     pthread_attr_setdetachstate(&(sr->attr), PTHREAD_CREATE_JOINABLE);
@@ -448,16 +448,11 @@ int handle_nat_tcp(struct sr_instance* sr, uint8_t *ip_packet, unsigned int ip_p
         
         /* if it is duplicated SYN packet, drop it */
         if (conn) {
-          /*time_t curtime = time(NULL);
-          if (conn->state == SYN_SENT && difftime(curtime,conn->last_updated) > 6) {
-            sr_rt_t *lpm = sr_rt_lookup(sr->routing_table, ip_header->ip_src);
-            sr_send_icmp(sr, ip_packet, lpm->interface, icmp_type_dstunreachable, 3);
-          }*/
           return 1;
         } 
         /* else, insert this SYN packet into the connection list */
         else {
-          sr_nat_insert_connection(&sr->nat, ntohs(tcp_header->dst_port), ntohl(ip_header->ip_src), 
+          sr_nat_insert_connection(&sr->nat, ip_packet, ntohs(tcp_header->dst_port), ntohl(ip_header->ip_src), 
             ntohs(tcp_header->src_port), ntohl(tcp_header->seq_num));
         }
       }
