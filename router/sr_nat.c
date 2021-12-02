@@ -79,6 +79,7 @@ void *sr_nat_timeout(void *sr_ptr) {  /* Periodic Timout handling */
     struct sr_nat_mapping *curr = nat->mappings;
 
     while (curr != NULL) {
+      printf("looping.......\n");
       /* icmp timeout case */
       if (curr->type == nat_mapping_icmp && difftime(curtime, curr->last_updated) > nat->icmp_query_to) {
         prev->next = curr->next;
@@ -92,6 +93,7 @@ void *sr_nat_timeout(void *sr_ptr) {  /* Periodic Timout handling */
         struct sr_nat_connection *pre_conn = dummy_conn;
         struct sr_nat_connection *cur_conn = curr->conns;
         while (cur_conn != NULL) {
+          printf("infinite loop\n");
           if (cur_conn->state == SYN_SENT && difftime(curtime,cur_conn->last_updated) > 6) {
 
             sr_rt_t *lpm = sr_rt_lookup(sr->routing_table, cur_conn->peer_ip);
@@ -101,8 +103,13 @@ void *sr_nat_timeout(void *sr_ptr) {  /* Periodic Timout handling */
             free(cur_conn);
             cur_conn = pre_conn->next;
           }
-          cur_conn = cur_conn->next;
+          else {
+            pre_conn = cur_conn;
+            cur_conn = cur_conn->next;
+          }
         }
+        curr->conns = dummy_conn->next;
+        free(dummy_conn);
       }
       else {
         prev = curr;
@@ -121,9 +128,10 @@ void *sr_nat_timeout(void *sr_ptr) {  /* Periodic Timout handling */
    You must free the returned structure if it is not NULL. */
 struct sr_nat_mapping *sr_nat_lookup_external(struct sr_nat *nat,
     uint16_t aux_ext, sr_nat_mapping_type type ) {
-
+  
+  printf("1111111111111111\n");
   pthread_mutex_lock(&(nat->lock));
-
+  printf("222222222222222222222\n");
   /* handle lookup here, malloc and assign to copy */
   struct sr_nat_mapping *copy = NULL;
   struct sr_nat_mapping *curr = nat->mappings;
@@ -133,13 +141,19 @@ struct sr_nat_mapping *sr_nat_lookup_external(struct sr_nat *nat,
     }
     curr = curr->next;
   }
+  
+  printf("3333333333333333333\n");
 
   if (curr) {
     copy = (struct sr_nat_mapping *) malloc(sizeof(struct sr_nat_mapping)); 
     memcpy(copy, curr, sizeof(struct sr_nat_mapping));
   }
+  
+  printf("444444444444444444444444\n");
 
   pthread_mutex_unlock(&(nat->lock));
+  
+  printf("5555555555555555555555555555\n");
   return copy;
 }
 

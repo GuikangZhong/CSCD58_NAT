@@ -438,7 +438,7 @@ int handle_nat_tcp(struct sr_instance* sr, uint8_t *ip_packet, unsigned int ip_p
     /* check whether it is inbound (external -> internal) SYN. If it is, wait for six seconds.
      * During this interval, if the NAT receives and translate outbound (internal -> external) SYN,
      * the NAT should silently drop the inbound SYN */
-    if (tcp_header->SYN == 1) {
+    if (tcp_header->SYN == 1 && tcp_header->ACK == 0) {
       printf("[NAT]: inboud SYN\n");
       /* if mapping is valid, check its list of connections*/
       mapping = sr_nat_lookup_external(&sr->nat, ntohs(tcp_header->dst_port), nat_mapping_tcp);
@@ -459,12 +459,15 @@ int handle_nat_tcp(struct sr_instance* sr, uint8_t *ip_packet, unsigned int ip_p
       /* if no mapping, send icmp port unreachable */
       else {
         printf("[NAT]: send icmp port unreachable\n");
+        return 0;
       }
     }
     else {
       mapping = sr_nat_lookup_external(&sr->nat, ntohs(tcp_header->dst_port), nat_mapping_tcp);
+      printf("is mapping NULL: %d\n", mapping == NULL);
       /* if mapping is valid -> translate dst ip to private ip*/
       if (mapping) {
+        printf("found such mapping..............\n");
         tcp_header->dst_port = htons(mapping->aux_int);
         ip_header->ip_dst = htonl(mapping->ip_int);
       }
