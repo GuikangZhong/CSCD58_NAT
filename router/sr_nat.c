@@ -67,10 +67,16 @@ void *sr_nat_timeout(void *nat_ptr) {  /* Periodic Timout handling */
     struct sr_nat_mapping *curr = nat->mappings;
 
     while (curr != NULL) {
-      if (difftime(curtime, curr->last_updated) > nat->icmp_query_to) {
+      /* icmp timeout case */
+      if (curr->type == nat_mapping_icmp && difftime(curtime, curr->last_updated) > nat->icmp_query_to) {
         prev->next = curr->next;
         curr = curr->next;
-      } else {
+      }
+      /* tcp connection timeout case */
+      else if (curr->type == nat_mapping_tcp) {
+        
+      }
+      else {
         prev = curr;
         curr = curr->next;      
       }
@@ -162,4 +168,62 @@ struct sr_nat_mapping *sr_nat_insert_mapping(struct sr_nat *nat,
 
   pthread_mutex_unlock(&(nat->lock));
   return mapping;
+}
+
+struct sr_nat_connection *sr_nat_insert_connection(struct sr_nat *nat, uint16_t ext_port, 
+  uint32_t peer_ip, uint16_t peer_port, uint32_t peer_seq_num) {
+
+  pthread_mutex_lock(&(nat->lock));
+
+  struct sr_nat_connection *copy = NULL;
+  struct sr_nat_connection *new_entry;
+
+  new_entry = (struct sr_nat_connection *)calloc(1, sizeof(struct sr_nat_connection));
+  new_entry->peer_ip = peer_ip;
+  new_entry->peer_port = peer_port;
+  new_entry->peer_seq_num = peer_seq_num;
+  new_entry->last_updated = time(NULL);
+
+  /* find the corresponding ext_port */
+  struct sr_nat_mapping *curr = nat->mappings;
+  while (curr) {
+    if (curr->aux_ext == ext_port) {
+      break;
+    }
+    curr = curr->next;
+  }
+
+  if (curr) {
+    new_entry->next = curr->conns;
+    curr->conns = new_entry;
+    struct sr_nat_connection *copy = (struct sr_nat_connection *) malloc(sizeof(struct sr_nat_connection)); 
+    memcpy(copy, new_entry, sizeof(struct sr_nat_connection));
+  }
+  
+  pthread_mutex_unlock(&(nat->lock));
+  return copy;
+}
+
+struct sr_nat_connection *sr_nat_lookup_connection(struct sr_nat *nat, struct sr_nat_mapping *mapping, 
+  uint32_t peer_ip, uint16_t peer_port, uint32_t peer_seq_num) {
+
+  pthread_mutex_lock(&(nat->lock));
+
+  struct sr_nat_connection *curr = mapping->conns;
+  struct sr_nat_connection *copy = NULL;
+  while (curr) {
+    if (curr->peer_ip == peer_ip && curr->peer_seq_num == peer_seq_num 
+      && curr->peer_port == peer_port) {
+      break;
+    }
+    curr = curr->next;
+  }
+
+  if (curr) {
+    copy = (struct sr_nat_connection *)malloc(sizeof(struct sr_nat_connection));
+    memcpy(copy, curr, sizeof(struct sr_nat_connection));
+  }
+  
+  pthread_mutex_unlock(&(nat->lock));
+  return copy;
 }
