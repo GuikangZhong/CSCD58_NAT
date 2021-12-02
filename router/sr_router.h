@@ -83,7 +83,7 @@ void sr_send_icmp(struct sr_instance* sr,
 
 /* -- sr_nat.c -- */
 int handle_nat_icmp(struct sr_instance* sr, uint8_t *ip_packet);
-int handle_nat_tcp(struct sr_instance* sr, uint8_t *ip_packet, unsigned int ip_packet_len);
+int handle_nat_tcp(struct sr_instance* sr, uint8_t *ip_packet, unsigned int ip_packet_len, int is_to_nat);
 
 /* -- sr_if.c -- */
 void sr_add_interface(struct sr_instance* , const char* );

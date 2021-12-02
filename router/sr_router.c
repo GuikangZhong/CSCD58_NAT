@@ -363,9 +363,9 @@ void sr_handle_ippacket(struct sr_instance* sr,
       }
     } else if (protocol == ip_protocol_tcp || protocol == ip_protocol_udp) {
       /* if nat is enabled and we can find a match in NAT */
-      if (sr->nat_enabled && protocol == ip_protocol_tcp && handle_nat_tcp(sr, packet, len)) {
-          printf("[NAT]: translated public ip to privite ip for TCP\n");
-          sr_forward_ippacket(sr, (sr_ip_hdr_t*) packet, len, interface);
+      if (sr->nat_enabled && protocol == ip_protocol_tcp && handle_nat_tcp(sr, packet, len, 1)) {
+        printf("[NAT]: translated public ip to privite ip for TCP\n");
+        sr_forward_ippacket(sr, (sr_ip_hdr_t*) packet, len, interface);
         return;
       }
       /* Send ICMP port unreacheable for traceroute
@@ -388,7 +388,7 @@ void sr_handle_ippacket(struct sr_instance* sr,
       handle_nat_icmp(sr, packet);
     }
     else if (sr->nat_enabled && protocol == ip_protocol_tcp) {
-      int success = handle_nat_tcp(sr, packet, len);
+      int success = handle_nat_tcp(sr, packet, len, 0);
       if (!success) {
         return;
       }
@@ -400,7 +400,7 @@ void sr_handle_ippacket(struct sr_instance* sr,
   return;
 } /* end sr_handle_ippacket */
 
-int handle_nat_tcp(struct sr_instance* sr, uint8_t *ip_packet, unsigned int ip_packet_len) {
+int handle_nat_tcp(struct sr_instance* sr, uint8_t *ip_packet, unsigned int ip_packet_len, int is_to_nat) {
   struct sr_nat_mapping *mapping;
   sr_ip_hdr_t *ip_header = (sr_ip_hdr_t *)(ip_packet);
   unsigned int ip_header_len = (ip_header->ip_hl)*4;
@@ -432,7 +432,7 @@ int handle_nat_tcp(struct sr_instance* sr, uint8_t *ip_packet, unsigned int ip_p
     ip_header->ip_src = interface_info->ip;
   }
   /* external to internal s->c */
-  else if (!is_private_ip(ntohl(ip_header->ip_src)) && is_private_ip(ntohl(ip_header->ip_dst))) {
+  else if (is_to_nat == 1) {
     printf("[NAT]: external -> internal\n");
 
     /* check whether it is inbound (external -> internal) SYN. If it is, wait for six seconds.
@@ -471,7 +471,8 @@ int handle_nat_tcp(struct sr_instance* sr, uint8_t *ip_packet, unsigned int ip_p
     }
   }
   /* external to external */
-  else {
+  else if (is_to_nat == 0) {
+    printf("external -> external \n");
     return 1;
   }
 
