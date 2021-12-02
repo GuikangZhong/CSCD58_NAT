@@ -45,6 +45,13 @@ int sr_nat_destroy(struct sr_nat *nat) {  /* Destroys the nat (free memory) */
   pthread_mutex_lock(&(nat->lock));
 
   /* free nat memory here */
+  struct sr_nat_mapping *curr = nat->mappings;
+  struct sr_nat_mapping *temp;
+  while (curr != NULL) {
+    temp = curr;
+    curr = curr->next;
+    free(temp);
+  }
 
   pthread_kill(nat->thread, SIGKILL);
   return pthread_mutex_destroy(&(nat->lock)) &&
@@ -70,11 +77,23 @@ void *sr_nat_timeout(void *nat_ptr) {  /* Periodic Timout handling */
       /* icmp timeout case */
       if (curr->type == nat_mapping_icmp && difftime(curtime, curr->last_updated) > nat->icmp_query_to) {
         prev->next = curr->next;
-        curr = curr->next;
+        free(curr);
+        curr = prev->next;
       }
       /* tcp connection timeout case */
       else if (curr->type == nat_mapping_tcp) {
-        
+        struct sr_nat_connection *dummy_conn = (struct sr_nat_connection *)calloc(1, sizeof(struct sr_nat_connection));
+        dummy_conn->next = curr->conns;
+        struct sr_nat_connection *pre_conn = dummy_conn;
+        struct sr_nat_connection *cur_conn = curr->conns;
+        while (cur_conn != NULL) {
+          if (cur_conn->state == SYN_SENT && difftime(curtime,cur_conn->last_updated) > 6) {
+            pre_conn->next = cur_conn->next;
+            free(cur_conn);
+            cur_conn = pre_conn->next;
+          }
+          cur_conn = cur_conn->next;
+        }
       }
       else {
         prev = curr;

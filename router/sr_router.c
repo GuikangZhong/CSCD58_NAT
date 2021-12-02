@@ -448,7 +448,12 @@ int handle_nat_tcp(struct sr_instance* sr, uint8_t *ip_packet, unsigned int ip_p
         
         /* if it is duplicated SYN packet, drop it */
         if (conn) {
-          return 0;
+          /*time_t curtime = time(NULL);
+          if (conn->state == SYN_SENT && difftime(curtime,conn->last_updated) > 6) {
+            sr_rt_t *lpm = sr_rt_lookup(sr->routing_table, ip_header->ip_src);
+            sr_send_icmp(sr, ip_packet, lpm->interface, icmp_type_dstunreachable, 3);
+          }*/
+          return 1;
         } 
         /* else, insert this SYN packet into the connection list */
         else {
