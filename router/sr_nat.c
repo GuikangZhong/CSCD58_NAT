@@ -38,7 +38,6 @@ int sr_nat_init(struct sr_instance *sr, unsigned int icmp_query_to, unsigned int
 
   nat->mappings = NULL;
   /* Initialize any variables here */
-  nat->ext_id = DEFAULT_ID;
   nat->icmp_query_to = icmp_query_to;
   nat->tcp_estab_idle_to = tcp_estab_idle_to;
   nat->tcp_transitory_to = tcp_transitory_to;
@@ -204,8 +203,7 @@ struct sr_nat_mapping *sr_nat_insert_mapping(struct sr_nat *nat,
   new_entry->ip_int = ip_int;
   new_entry->type = type;
   new_entry->aux_int = aux_int;
-  new_entry->aux_ext = nat->ext_id;
-  nat->ext_id = find_next_id(nat);
+  new_entry->aux_ext = find_next_id(nat);
   new_entry->last_updated = time(NULL);
   new_entry->next = nat->mappings;
   nat->mappings = new_entry;
@@ -219,14 +217,16 @@ struct sr_nat_mapping *sr_nat_insert_mapping(struct sr_nat *nat,
 
 int find_next_id(struct sr_nat *nat) {
   /* loop through the bitmap */
+  int res = -1;
   int i;
-  for (i=1024; i < TOTAL_PORTS; i++) {
+  for (i=DEFAULT_ID; i < TOTAL_PORTS; i++) {
     if (nat->bitmap[i].b == 0) {
       nat->bitmap[i].b = 1;
-      return i;
+      res = i;
+      break;
     }
   }
-  return -1;
+  return res;
 }
 
 void reset_id(struct sr_nat *nat, unsigned int ext_id) {

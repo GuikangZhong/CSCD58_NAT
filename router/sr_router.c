@@ -409,15 +409,14 @@ void sr_handle_ippacket(struct sr_instance* sr,
 } /* end sr_handle_ippacket */
 
 int handle_nat_tcp(struct sr_instance* sr, uint8_t *ip_packet, unsigned int ip_packet_len, int is_to_nat) {
+  print_sr_mapping(sr->nat.mappings);
+  
   struct sr_nat_mapping *mapping;
   sr_ip_hdr_t *ip_header = (sr_ip_hdr_t *)(ip_packet);
   unsigned int ip_header_len = (ip_header->ip_hl)*4;
   sr_tcp_hdr_t *tcp_header = (sr_tcp_hdr_t *)(ip_packet + ip_header_len);
+  
   printf("[NAT]: TCP packet arrived! \n");
-  print_addr_ip_int(ntohl(ip_header->ip_src));
-  print_addr_ip_int(ntohl(ip_header->ip_dst));
-  
-  
   /* internal to internal */
   if (is_private_ip(ntohl(ip_header->ip_src)) && is_private_ip(ntohl(ip_header->ip_dst))) {
     return 1;
@@ -513,12 +512,12 @@ int handle_nat_tcp(struct sr_instance* sr, uint8_t *ip_packet, unsigned int ip_p
 }
 
 int handle_nat_icmp(struct sr_instance* sr, uint8_t *ip_packet) {
+  print_sr_mapping(sr->nat.mappings);
+
   struct sr_nat_mapping *mapping;
   sr_ip_hdr_t *ip_header = (sr_ip_hdr_t *)(ip_packet);
   unsigned int icmp_len;
   unsigned int ip_header_len = (ip_header->ip_hl)*4;
-
-  print_sr_mapping(sr->nat.mappings);
 
   printf("[NAT]: packet arrived! \n");
   sr_icmp_hdr_t *icmp_header = (sr_icmp_hdr_t *)(ip_packet + ip_header_len);
@@ -673,11 +672,8 @@ void sr_send_icmp(struct sr_instance* sr,
   sr_if_t* interface_info = sr_get_interface(sr, interface);
 
   /* Construct the ip packet for sending out */
-  printf("2222222222222222222222\n");
   icmp_packet = sr_create_icmppacket(&load_len, packet, type, code);
-  printf("333333333333333333333333\n");
   source_ip = ((sr_ip_hdr_t*)packet)->ip_src;
-  printf("4444444444444444444444444444\n");
   dest_ip = ((sr_ip_hdr_t*)packet)->ip_dst;
   print_hdr_icmp(icmp_packet);
 

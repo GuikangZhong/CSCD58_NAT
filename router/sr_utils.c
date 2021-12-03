@@ -180,7 +180,7 @@ void print_hdr_arp(uint8_t *buf) {
 }
 
 void print_sr_mapping(struct sr_nat_mapping *mapping) {
-  fprintf(stderr, "\nIP_INT            aux_int         aux_ext                      type\n");
+  fprintf(stderr, "\nIP_INT       aux_int       aux_ext          type\n");
   fprintf(stderr, "-----------------------------------------------------------\n");
 
   struct sr_nat_mapping *curr = mapping;

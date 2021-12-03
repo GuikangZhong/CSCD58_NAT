@@ -67,8 +67,6 @@ struct sr_nat {
   unsigned int icmp_query_to; /* icmp query timeout */
   unsigned int tcp_estab_idle_to; /* tcp established timeout */
   unsigned int tcp_transitory_to; /* tcp transitory timeout */
-
-  int ext_id; /* use for external port or icmp id */
   struct bit bitmap[TOTAL_PORTS]; /* bit map to check if a ext id is in use */
 
   /* threading */
