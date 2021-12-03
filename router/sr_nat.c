@@ -44,7 +44,7 @@ int sr_nat_init(struct sr_instance *sr, unsigned int icmp_query_to, unsigned int
 
   int i = 0;
   for ( i = 0; i < TOTAL_PORTS; i++ )
-    nat->bitmap[i].b = 0;
+    nat->bitmap[i] = 0;
 
   return success;
 }
@@ -220,8 +220,8 @@ int find_next_id(struct sr_nat *nat) {
   int res = -1;
   int i;
   for (i=DEFAULT_ID; i < TOTAL_PORTS; i++) {
-    if (nat->bitmap[i].b == 0) {
-      nat->bitmap[i].b = 1;
+    if (nat->bitmap[i] == 0) {
+      nat->bitmap[i] = 1;
       res = i;
       break;
     }
@@ -231,7 +231,7 @@ int find_next_id(struct sr_nat *nat) {
 
 void reset_id(struct sr_nat *nat, unsigned int ext_id) {
   /* loop through the bitmap */
-  nat->bitmap[ext_id].b = 0;
+  nat->bitmap[ext_id] = 0;
 }
 
 struct sr_nat_connection *sr_nat_insert_connection(struct sr_nat *nat, uint8_t *ip_packet, uint16_t ext_port, 
