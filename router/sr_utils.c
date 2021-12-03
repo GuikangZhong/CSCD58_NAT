@@ -3,6 +3,7 @@
 #include <string.h>
 #include "sr_protocol.h"
 #include "sr_utils.h"
+#include "sr_nat.h"
 
 /* Returns the check sum in network byte order */
 uint16_t cksum (const void *_data, int len) {
@@ -35,6 +36,15 @@ int is_private_ip(uint32_t ip) {
     return 1;
   }
   return 0;
+}
+
+int determine_state(sr_tcp_hdr_t *buf) {
+  if (buf->SYN == 1 && buf->ACK == 0) {
+    return SYN_SENT;
+  }
+  else if (buf->SYN == 1 && buf->ACK == 1) {
+    return SYN_RCVD;
+  }
 }
 
 /* Prints out formatted Ethernet address, e.g. 00:11:22:33:44:55 */

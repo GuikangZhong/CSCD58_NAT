@@ -222,6 +222,7 @@ struct sr_nat_connection *sr_nat_insert_connection(struct sr_nat *nat, uint8_t *
   new_entry->peer_ip = peer_ip;
   new_entry->peer_port = peer_port;
   new_entry->peer_seq_num = peer_seq_num;
+  new_entry->state = SYN_SENT;
   new_entry->last_updated = time(NULL);
 
   /* find the corresponding ext_port */
