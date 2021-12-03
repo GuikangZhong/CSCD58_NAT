@@ -666,11 +666,16 @@ void sr_send_icmp(struct sr_instance* sr,
   uint32_t dest_ip;
   unsigned int load_len;
   unsigned int frame_len;
+  
+  printf("interface: %s\n", interface);
   sr_if_t* interface_info = sr_get_interface(sr, interface);
 
   /* Construct the ip packet for sending out */
+  printf("2222222222222222222222\n");
   icmp_packet = sr_create_icmppacket(&load_len, packet, type, code);
+  printf("333333333333333333333333\n");
   source_ip = ((sr_ip_hdr_t*)packet)->ip_src;
+  printf("4444444444444444444444444444\n");
   dest_ip = ((sr_ip_hdr_t*)packet)->ip_dst;
   print_hdr_icmp(icmp_packet);
 

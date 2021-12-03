@@ -92,10 +92,12 @@ void *sr_nat_timeout(void *sr_ptr) {  /* Periodic Timout handling */
         struct sr_nat_connection *pre_conn = dummy_conn;
         struct sr_nat_connection *cur_conn = curr->conns;
         while (cur_conn != NULL) {
-          if (cur_conn->state == SYN_SENT && difftime(curtime,cur_conn->last_updated) > 6) {
+          if (cur_conn->state == SYN_SENT && difftime(curtime,cur_conn->last_updated) > 200) {
             
             printf("sending type 3 code 3\n");
-            sr_rt_t *lpm = sr_rt_lookup(sr->routing_table, cur_conn->peer_ip);
+            sr_rt_t *lpm = sr_rt_lookup(sr->routing_table, htonl(cur_conn->peer_ip));
+            printf("interface_ip: \n");
+            print_addr_ip_int((lpm->dest).s_addr);
             sr_send_icmp(sr, cur_conn->ip_packet, lpm->interface, icmp_type_dstunreachable, 3);
 
             pre_conn->next = cur_conn->next;
