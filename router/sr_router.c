@@ -126,6 +126,13 @@ void sr_handlepacket(struct sr_instance* sr,
   assert(sr);
   assert(packet);
   assert(interface);
+  
+  time_t rawtime;
+  struct tm * timeinfo;
+
+  time ( &rawtime );
+  timeinfo = localtime ( &rawtime );
+  printf ( "Current local time and date: %s", asctime (timeinfo) );
 
   printf("*** -> Received packet of length %d \n",len);
 
@@ -363,14 +370,15 @@ void sr_handle_ippacket(struct sr_instance* sr,
       }
     } else if (protocol == ip_protocol_tcp || protocol == ip_protocol_udp) {
       /* if nat is enabled and we can find a match in NAT */
-      if (sr->nat_enabled && protocol == ip_protocol_tcp && handle_nat_tcp(sr, packet, len, 1)) {
+      int code = handle_nat_tcp(sr, packet, len, 1);
+      if (sr->nat_enabled && protocol == ip_protocol_tcp && (code == 1)) {
         printf("[NAT]: translated public ip to privite ip for TCP\n");
         sr_forward_ippacket(sr, (sr_ip_hdr_t*) packet, len, interface);
-        return;
       }
       /* Send ICMP port unreacheable for traceroute
        * in case of udp or tcp protocol*/
-      sr_send_icmp(sr, packet, interface, icmp_type_dstunreachable, 3);
+       else if (code == 0) 
+        sr_send_icmp(sr, packet, interface, icmp_type_dstunreachable, 3);
     } else {
       /* Otherwise send ICMP protocol unrecognized*/
       sr_send_icmp(sr, packet, interface, icmp_type_dstunreachable, 2);
@@ -448,12 +456,13 @@ int handle_nat_tcp(struct sr_instance* sr, uint8_t *ip_packet, unsigned int ip_p
         
         /* if it is duplicated SYN packet, drop it */
         if (conn) {
-          return 1;
+          return -1;
         } 
         /* else, insert this SYN packet into the connection list */
         else {
           sr_nat_insert_connection(&sr->nat, ip_packet, ntohs(tcp_header->dst_port), ntohl(ip_header->ip_src), 
             ntohs(tcp_header->src_port), ntohl(tcp_header->seq_num));
+            return -1;
         }
       }
       /* if no mapping, send icmp port unreachable */
