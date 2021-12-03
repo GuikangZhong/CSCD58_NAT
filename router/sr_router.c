@@ -518,6 +518,8 @@ int handle_nat_icmp(struct sr_instance* sr, uint8_t *ip_packet) {
   unsigned int icmp_len;
   unsigned int ip_header_len = (ip_header->ip_hl)*4;
 
+  print_sr_mapping(sr->nat.mappings);
+
   printf("[NAT]: packet arrived! \n");
   sr_icmp_hdr_t *icmp_header = (sr_icmp_hdr_t *)(ip_packet + ip_header_len);
 

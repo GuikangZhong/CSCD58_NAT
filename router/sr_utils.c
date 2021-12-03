@@ -2,7 +2,6 @@
 #include <stdio.h>
 #include <string.h>
 #include "sr_protocol.h"
-#include "sr_utils.h"
 #include "sr_nat.h"
 
 /* Returns the check sum in network byte order */
@@ -178,4 +177,15 @@ void print_hdr_arp(uint8_t *buf) {
   print_addr_eth(arp_hdr->ar_tha);
   fprintf(stderr, "\ttarget ip address: ");
   print_addr_ip_int(ntohl(arp_hdr->ar_tip));
+}
+
+void print_sr_mapping(struct sr_nat_mapping *mapping) {
+  fprintf(stderr, "\nIP_INT            aux_int         aux_ext                      type\n");
+  fprintf(stderr, "-----------------------------------------------------------\n");
+
+  struct sr_nat_mapping *curr = mapping;
+  while (curr) {
+    printf("%.8x       %d          %d            %d\n", curr->ip_int, curr->aux_int, curr->aux_ext, curr->type);
+    curr = curr->next;
+  }
 }
