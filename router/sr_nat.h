@@ -69,7 +69,7 @@ struct sr_nat {
   unsigned int tcp_transitory_to; /* tcp transitory timeout */
 
   int ext_id; /* use for external port or icmp id */
-  struct bit bit_map[TOTAL_PORTS]; /* bit map to check if a ext id is in use */
+  struct bit bitmap[TOTAL_PORTS]; /* bit map to check if a ext id is in use */
 
   /* threading */
   pthread_mutex_t lock;

@@ -12,8 +12,8 @@
 #include "sr_router.h"
 #include "sr_rt.h"
 
-int find_next_id(struct bit bitmap[]);
-void reset_id(struct bit bitmap[], unsigned int ext_id);
+int find_next_id(struct sr_nat *nat);
+void reset_id(struct sr_nat *nat, unsigned int ext_id);
 
 int sr_nat_init(struct sr_instance *sr, unsigned int icmp_query_to, unsigned int tcp_estab_idle_to, unsigned int tcp_transitory_to) { /* Initializes the nat */
 
@@ -45,7 +45,7 @@ int sr_nat_init(struct sr_instance *sr, unsigned int icmp_query_to, unsigned int
 
   int i = 0;
   for ( i = 0; i < TOTAL_PORTS; i++ )
-    nat->bit_map[i].b = 0;
+    nat->bitmap[i].b = 0;
 
   return success;
 }
@@ -89,7 +89,8 @@ void *sr_nat_timeout(void *sr_ptr) {  /* Periodic Timout handling */
       /* icmp timeout case */
       if (curr->type == nat_mapping_icmp && difftime(curtime, curr->last_updated) > nat->icmp_query_to) {
         prev->next = curr->next;
-        reset_id(nat->bit_map, curr->aux_ext);
+        printf("[NAT]: ICMP query timeout, clean mapping of id %d\n", curr->aux_ext);
+        reset_id(nat, curr->aux_ext);
         free(curr);
         curr = prev->next;
       }
@@ -102,10 +103,7 @@ void *sr_nat_timeout(void *sr_ptr) {  /* Periodic Timout handling */
         while (cur_conn != NULL) {
           if (cur_conn->state == SYN_SENT && difftime(curtime,cur_conn->last_updated) > 200) {
             
-            printf("sending type 3 code 3\n");
             sr_rt_t *lpm = sr_rt_lookup(sr->routing_table, htonl(cur_conn->peer_ip));
-            printf("interface_ip: \n");
-            print_addr_ip_int((lpm->dest).s_addr);
             sr_send_icmp(sr, cur_conn->ip_packet, lpm->interface, icmp_type_dstunreachable, 3);
 
             pre_conn->next = cur_conn->next;
@@ -207,7 +205,7 @@ struct sr_nat_mapping *sr_nat_insert_mapping(struct sr_nat *nat,
   new_entry->type = type;
   new_entry->aux_int = aux_int;
   new_entry->aux_ext = nat->ext_id;
-  nat->ext_id = find_next_id(nat->bit_map);
+  nat->ext_id = find_next_id(nat);
   new_entry->last_updated = time(NULL);
   new_entry->next = nat->mappings;
   nat->mappings = new_entry;
@@ -219,21 +217,21 @@ struct sr_nat_mapping *sr_nat_insert_mapping(struct sr_nat *nat,
   return mapping;
 }
 
-int find_next_id(struct bit bitmap[]) {
+int find_next_id(struct sr_nat *nat) {
   /* loop through the bitmap */
   int i;
   for (i=1024; i < TOTAL_PORTS; i++) {
-    if (bitmap[i].b == 0) {
-      bitmap[i].b = 1;
+    if (nat->bitmap[i].b == 0) {
+      nat->bitmap[i].b = 1;
       return i;
     }
   }
   return -1;
 }
 
-void reset_id(struct bit bitmap[], unsigned int ext_id) {
+void reset_id(struct sr_nat *nat, unsigned int ext_id) {
   /* loop through the bitmap */
-  bitmap[ext_id].b = 0;
+  nat->bitmap[ext_id].b = 0;
 }
 
 struct sr_nat_connection *sr_nat_insert_connection(struct sr_nat *nat, uint8_t *ip_packet, uint16_t ext_port, 
