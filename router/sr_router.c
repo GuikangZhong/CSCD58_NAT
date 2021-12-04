@@ -432,6 +432,7 @@ int handle_nat_tcp(struct sr_instance* sr, uint8_t *ip_packet, unsigned int ip_p
     /* if empty or time out -> insert */
     if (!mapping) {
       mapping = sr_nat_insert_mapping(&sr->nat, ntohl(ip_header->ip_src), ntohs(tcp_header->src_port), nat_mapping_tcp);
+      printf("2222222222\n");
       /* insert the connection */
       printf("[state]");
       printf("%d\n",sr_nat_insert_connection(&(sr->nat), mapping->aux_ext, (uint8_t *)ip_header, SYN_SENT)->state);
