@@ -191,7 +191,7 @@ In Wireshark <br>
 
 ![alt text](/images/ICMP_echo_request_eth2.PNG "ICMP_echo_request_eth2") <br>
 <div align="center"> <b>Fig.2 - client1's echo request to server1_eth2</b></div> <br>
-As you can see the red cirles in these two screenshots, after the ICMP request packet goes from eth1 to eth2, the IP address of client 1 has changed to the IP address of the router eth5. And the identifier has been changed from 3337 to 1024 (As 0-1023 are reserverd). <br>
+As you can see the red cirles in these two screenshots, after the ICMP request packet goes from eth1 to eth2, the IP address of client 1 has changed to the IP address of the router eth5. And the identifier has been changed from 3337 to 1024 (As 0-1023 are reserverd). <br><br>
 
 Same thing for client 2: <br>
 ```console
@@ -211,4 +211,3 @@ In Wireshark <br>
 
 ![alt text](/images/client2_ICMP_echo_request_eth4.PNG "client2_ICMP_echo_request_eth2") <br>
 <div align="center"> <b>Fig.4 - client2's echo request to server1_eth2</b></div> <br>
-As you can see the red cirles in these two screenshots, after the ICMP request packet goes from eth1 to eth2, the IP address of client 1 has changed to the IP address of the router eth5. And the identifier has been changed from 3337 to 1024 (As 0-1023 are reserverd). <br>
