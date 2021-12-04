@@ -427,17 +427,17 @@ int handle_nat_tcp(struct sr_instance* sr, uint8_t *ip_packet, unsigned int ip_p
     printf("[NAT]: internal -> external\n");
     print_hdr_tcp((uint8_t *)tcp_header);
     mapping = sr_nat_lookup_internal(&sr->nat, ntohl(ip_header->ip_src), ntohs(tcp_header->src_port), nat_mapping_tcp);
-    printf("11111111111\n");
+    printf("1111111111\n");
 
     /* if empty or time out -> insert */
     if (!mapping) {
       mapping = sr_nat_insert_mapping(&sr->nat, ntohl(ip_header->ip_src), ntohs(tcp_header->src_port), nat_mapping_tcp);
       printf("2222222222\n");
       /* insert the connection */
-      printf("[state]");
-      printf("%d\n",sr_nat_insert_connection(&(sr->nat), mapping->aux_ext, (uint8_t *)ip_header, SYN_SENT)->state);
+      printf("[state]:\n");
+      sr_nat_insert_connection(&sr->nat, mapping->aux_ext, (uint8_t *)ip_header, SYN_SENT);
     } else {
-      printf("[state]");
+      printf("[state]:\n");
       printf("%d\n",sr_nat_update_connection(&sr->nat, mapping, (uint8_t *)ip_packet, 0)->state);
     }
 
@@ -482,7 +482,7 @@ int handle_nat_tcp(struct sr_instance* sr, uint8_t *ip_packet, unsigned int ip_p
       mapping = sr_nat_lookup_external(&sr->nat, ntohs(tcp_header->dst_port), nat_mapping_tcp);
       /* if mapping is valid -> translate dst ip to private ip*/
       if (mapping) {
-        printf("[state]");
+        printf("[state]:\n");
         printf("%d\n",sr_nat_update_connection(&sr->nat, mapping, (uint8_t *)ip_packet, 1)->state);
         tcp_header->dst_port = htons(mapping->aux_int);
         ip_header->ip_dst = htonl(mapping->ip_int);
