@@ -163,7 +163,7 @@ void sr_handlepacket(struct sr_instance* sr,
   load_len = len - sizeof(sr_ethernet_hdr_t);
   /*Debug Functions*/
   fprintf(stderr, "Confirmed destination of following frame \n");
-  print_hdr_eth(packet);
+  /*print_hdr_eth(packet);*/
 
   /* Pass off to appropriate helper function based on the ethertype*/
   if (ethertype == ethertype_arp) {
@@ -205,7 +205,7 @@ void sr_handle_arp(struct sr_instance* sr,
   /* Check that protocol is ethernet and ip*/
   arp_packet = (sr_arp_packet_t*) packet;
   fprintf(stderr, "Received the following ARP packet: \n");
-  print_hdr_arp(packet); /*DEBUG*/
+  /* print_hdr_arp(packet); */ /*DEBUG*/
   if(ntohs(arp_packet->ar_hrd) == arp_hrd_ethernet &&
           ntohs(arp_packet->ar_pro) == arp_pro_ip) {
     /*Extract data from arp packet, ip addresses kept in nbo*/
@@ -417,7 +417,7 @@ int handle_nat_tcp(struct sr_instance* sr, uint8_t *ip_packet, unsigned int ip_p
   unsigned int ip_header_len = (ip_header->ip_hl)*4;
   sr_tcp_hdr_t *tcp_header = (sr_tcp_hdr_t *)(ip_packet + ip_header_len);
   
-  printf("[NAT]: TCP packet arrived! \n");
+  printf("========[NAT]: TCP packet arrived! =======\n");
   /* internal to internal */
   if (is_private_ip(ntohl(ip_header->ip_src)) && is_private_ip(ntohl(ip_header->ip_dst))) {
     return 1;
@@ -638,12 +638,12 @@ void sr_send_arp(struct sr_instance* sr,
   arp_packet = sr_create_arppacket(&load_len, arp_type,
           source_ether_addr, source_ip_addr,
           dest_ether_addr, dest_ip_addr);
-  print_hdr_arp(arp_packet); /*DEBUG*/
+  /*print_hdr_arp(arp_packet);*/ /*DEBUG*/
   
   /*Create ethernet header*/
   frame = sr_create_etherframe(load_len, arp_packet, 
           dest_ether_addr,  source_ether_addr, ethertype_arp);
-  print_hdr_eth(frame); /*DEBUG*/
+  /*print_hdr_eth(frame);*/ /*DEBUG*/
 
   /*Pass to sr_send_packet()*/
   if (sr_send_packet(sr, frame, sizeof(sr_ethernet_hdr_t) + load_len,
