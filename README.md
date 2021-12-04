@@ -55,5 +55,5 @@ In Wireshark <br>
 
 | ![alt text](/images/ICMP_echo_request_eth2.PNG "ICMP_echo_request_eth2") |
 |:--:|
-| <b>Fig.2 - ICMP_echo_request_eth2</b>|
+| <b>Fig.2 - ICMP_echo_request_eth2</b>| <br>
 As you can see the red cirles in these two screenshots, after the ICMP request packet goes from eth1 to eth2, the IP address of client 1 has changed to the IP address of the router eth5. And the identifier has been changed from 3337 to 1024 (As 0-1023 are reserverd).
