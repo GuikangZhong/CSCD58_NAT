@@ -107,14 +107,11 @@ void *sr_nat_timeout(void *sr_ptr) {  /* Periodic Timout handling */
         dummy_conn->next = curr->conns;
         struct sr_nat_connection *pre_conn = dummy_conn;
         struct sr_nat_connection *cur_conn = curr->conns;
-
-        unsigned int flag = 0;
         
         while (cur_conn != NULL) {
           if (cur_conn->state == ESTAB) {
             
             if (difftime(curtime,cur_conn->last_updated) > DEFAULT_TCP_ESTABLISHED_TO) {
-              flag = 1;
               pre_conn->next = cur_conn->next;
               free(cur_conn);
               cur_conn = pre_conn->next;
@@ -135,13 +132,11 @@ void *sr_nat_timeout(void *sr_ptr) {  /* Periodic Timout handling */
           }
 
           else if (difftime(curtime,cur_conn->last_updated) > DEFAULT_TCP_TRANSITORY_TO) {
-            flag = 1;
             pre_conn->next = cur_conn->next;
             free(cur_conn);
             cur_conn = pre_conn->next;
           }
           else {
-            flag = 0;
             pre_conn = cur_conn;
             cur_conn = cur_conn->next;          
           }
@@ -149,7 +144,7 @@ void *sr_nat_timeout(void *sr_ptr) {  /* Periodic Timout handling */
         
         curr->conns = dummy_conn->next;
         free(dummy_conn);
-        if (flag) {
+        if (curr->conns == NULL) {
           prev->next = curr->next;
           printf("[NAT]: TCP mapping timeout, clean mapping of id %d\n", curr->aux_ext);
           ClearBit(nat->bitmap, curr->aux_ext);
