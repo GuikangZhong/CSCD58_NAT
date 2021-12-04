@@ -37,16 +37,6 @@ int is_private_ip(uint32_t ip) {
   return 0;
 }
 
-int determine_state(sr_tcp_hdr_t *buf) {
-  if (buf->SYN == 1 && buf->ACK == 0) {
-    return SYN_SENT;
-  }
-  else if (buf->SYN == 1 && buf->ACK == 1) {
-    return SYN_RCVD;
-  }
-  return 0;
-}
-
 /* Prints out formatted Ethernet address, e.g. 00:11:22:33:44:55 */
 void print_addr_eth(uint8_t *addr) {
   int pos = 0;

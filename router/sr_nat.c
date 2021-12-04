@@ -94,35 +94,59 @@ void *sr_nat_timeout(void *sr_ptr) {  /* Periodic Timout handling */
       }
       /* tcp connection timeout case */
       else if (curr->type == nat_mapping_tcp) {
+        
         struct sr_nat_connection *dummy_conn = (struct sr_nat_connection *)calloc(1, sizeof(struct sr_nat_connection));
         dummy_conn->next = curr->conns;
         struct sr_nat_connection *pre_conn = dummy_conn;
         struct sr_nat_connection *cur_conn = curr->conns;
-        while (cur_conn != NULL) {
-          if (cur_conn->state == SYN_SENT && difftime(curtime,cur_conn->last_updated) > 200) {
-            
-            sr_rt_t *lpm = sr_rt_lookup(sr->routing_table, htonl(cur_conn->peer_ip));
-            sr_send_icmp(sr, cur_conn->ip_packet, lpm->interface, icmp_type_dstunreachable, 3);
 
+        unsigned int flag = 0;
+        
+        while (cur_conn != NULL) {
+          if (cur_conn->state == ESTAB) {
+            
+            if (difftime(curtime,cur_conn->last_updated) > DEFAULT_TCP_ESTABLISHED_TO) {
+              flag = 1;
+            } else {
+              flag = 0;
+            }
+            
+            /* if (cur_conn->state == SYN_SENT && difftime(curtime,cur_conn->last_updated) > DEFAULT_TCP_SYN_TO) {
+              sr_rt_t *lpm = sr_rt_lookup(sr->routing_table, htonl(cur_conn->peer_ip));
+              sr_send_icmp(sr, cur_conn->ip_packet, lpm->interface, icmp_type_dstunreachable, 3); 
+            } */
+            
             pre_conn->next = cur_conn->next;
             free(cur_conn);
             cur_conn = pre_conn->next;
           }
-          else {
-            pre_conn = cur_conn;
-            cur_conn = cur_conn->next;
+
+          else if (cur_conn->state == CLOSED) {
+            pre_conn->next = cur_conn->next;
+            free(cur_conn);
+            cur_conn = pre_conn->next;
           }
+
+          else if (difftime(curtime,cur_conn->last_updated) > DEFAULT_TCP_TRANSITORY_TO) {
+            flag = 1;
+          }
+          pre_conn = cur_conn;
+          cur_conn = cur_conn->next;
+        }
+
+        if (flag) {
+          prev->next = curr->next;
+          printf("[NAT]: TCP mapping timeout, clean mapping of id %d\n", curr->aux_ext);
+          ClearBit(nat->bitmap, curr->aux_ext);
+          free(curr);
+          curr = prev->next;
         }
         curr->conns = dummy_conn->next;
         free(dummy_conn);
-        prev = curr;
-        curr = curr->next;
-      }
-      else {
-        prev = curr;
-        curr = curr->next;      
       }
 
+      prev = curr;
+      curr = curr->next;
     }
     nat->mappings = dummy_head->next;
     free(dummy_head);
@@ -232,8 +256,8 @@ int find_next_id(struct sr_nat *nat) {
   return -1;
 }
 
-struct sr_nat_connection *sr_nat_insert_connection(struct sr_nat *nat, uint8_t *ip_packet, uint16_t ext_port, 
-  uint32_t peer_ip, uint16_t peer_port, uint32_t peer_seq_num) {
+struct sr_nat_connection *sr_nat_insert_connection(struct sr_nat *nat, uint16_t ext_port, 
+  uint32_t peer_ip, uint16_t peer_port, uint32_t peer_seq_num, unsigned int state) {
 
   pthread_mutex_lock(&(nat->lock));
 
@@ -241,11 +265,10 @@ struct sr_nat_connection *sr_nat_insert_connection(struct sr_nat *nat, uint8_t *
   struct sr_nat_connection *new_entry;
 
   new_entry = (struct sr_nat_connection *)calloc(1, sizeof(struct sr_nat_connection));
-  new_entry->ip_packet = ip_packet;
   new_entry->peer_ip = peer_ip;
   new_entry->peer_port = peer_port;
   new_entry->peer_seq_num = peer_seq_num;
-  new_entry->state = SYN_SENT;
+  new_entry->state = state;
   new_entry->last_updated = time(NULL);
 
   /* find the corresponding ext_port */
@@ -290,4 +313,35 @@ struct sr_nat_connection *sr_nat_lookup_connection(struct sr_nat *nat, struct sr
   
   pthread_mutex_unlock(&(nat->lock));
   return copy;
+}
+
+int determine_state(struct sr_nat_connection *conn, sr_tcp_hdr_t *buf) {
+  if (buf->SYN == 1 && buf->ACK == 0) {
+    return SYN_SENT;
+  }
+  else if (conn->state == SYN_SENT && buf->SYN == 1) {
+    return SYN_RCVD;
+  }
+  else if (conn->state == SYN_SENT && buf->SYN == 1 && buf->ACK == 1) {
+    return ESTAB;
+  }
+  else if (conn->state == SYN_RCVD && buf->ACK == 1) {
+    return ESTAB;
+  }
+  else if (conn->state == ESTAB && buf->FIN == 1) {
+    return FIN_WAIT_1;
+  }
+  else if (conn->state == FIN_WAIT_1 && buf->FIN == 1) {
+    return CLOSING;
+  }
+  else if (conn->state == CLOSING && buf->ACK == 1) {
+    return CLOSED;
+  }
+  else if (conn->state == FIN_WAIT_1 && buf->ACK == 1){
+    return FIN_WAIT_2;
+  }
+  else if (conn->state == FIN_WAIT_2 && buf->FIN == 1) {
+    return CLOSED;
+  }
+  return -1;
 }

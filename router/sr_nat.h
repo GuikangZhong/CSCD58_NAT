@@ -5,12 +5,14 @@
 #include <inttypes.h>
 #include <time.h>
 #include <pthread.h>
+#include "sr_protocol.h"
 
 #define DEFAULT_ID 1024
 #define DEFAULT_ICMP_QUERY_TO 60
 #define DEFAULT_TCP_ESTABLISHED_TO 7440
 #define DEFAULT_TCP_TRANSITORY_TO 300
 #define TOTAL_PORTS 65536
+#define DEFAULT_TCP_SYN_TO 6
 
 #define ClearBit(A,k)   ( A[(k/32)] &= ~(1 << (k%32)) ) /* Reference website: http://www.mathcs.emory.edu/~cheung/Courses/255/Syllabus/1-C-intro/bit-array.html */
 
@@ -39,7 +41,6 @@ typedef enum {
 struct sr_nat_connection {
   /* add TCP connection state data members here */
   sr_tcp_state_type state;
-  uint8_t *ip_packet;
   uint32_t peer_ip;
   uint16_t peer_port;
   uint32_t self_seq_num; /* sequence number */
@@ -97,8 +98,9 @@ struct sr_nat_mapping *sr_nat_insert_mapping(struct sr_nat *nat,
 struct sr_nat_connection *sr_nat_lookup_connection(struct sr_nat *nat, struct sr_nat_mapping *mapping, 
   uint32_t peer_ip, uint16_t peer_port, uint32_t peer_seq_num);
 
-struct sr_nat_connection *sr_nat_insert_connection(struct sr_nat *nat, uint8_t *ip_packet, uint16_t ext_port, 
-  uint32_t peer_ip, uint16_t peer_port, uint32_t peer_seq_num);
+struct sr_nat_connection *sr_nat_insert_connection(struct sr_nat *nat, uint16_t ext_port, 
+  uint32_t peer_ip, uint16_t peer_port, uint32_t peer_seq_num, unsigned int state);
 
+int determine_state(struct sr_nat_connection *conn, sr_tcp_hdr_t *buf);
 
 #endif

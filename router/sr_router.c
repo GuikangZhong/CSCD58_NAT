@@ -430,6 +430,10 @@ int handle_nat_tcp(struct sr_instance* sr, uint8_t *ip_packet, unsigned int ip_p
     /* if empty or time out -> insert */
     if (!mapping) {
       mapping = sr_nat_insert_mapping(&sr->nat, ntohl(ip_header->ip_src), ntohs(tcp_header->src_port), nat_mapping_tcp);
+      
+      /* insert the connection */
+      sr_nat_insert_connection(&(sr->nat), ntohs(tcp_header->dst_port), ntohl(ip_header->ip_src), 
+        ntohs(tcp_header->src_port), ntohl(tcp_header->seq_num), SYN_SENT);
     } 
 
     /* mapping is valid -> translate src ip to public ip*/
@@ -457,12 +461,12 @@ int handle_nat_tcp(struct sr_instance* sr, uint8_t *ip_packet, unsigned int ip_p
         if (conn) {
           return -1;
         } 
-        /* else, insert this SYN packet into the connection list */
+        /* else, insert this SYN packet into the connection list
         else {
-          sr_nat_insert_connection(&sr->nat, ip_packet, ntohs(tcp_header->dst_port), ntohl(ip_header->ip_src), 
+          sr_nat_insert_connection(&sr->nat, ntohs(tcp_header->dst_port), ntohl(ip_header->ip_src), 
             ntohs(tcp_header->src_port), ntohl(tcp_header->seq_num));
             return -1;
-        }
+        } */
       }
       /* if no mapping, send icmp port unreachable */
       else {
