@@ -4,14 +4,17 @@
 Guikang Zhong 1004304807 zhonggui<br>
 Jingwei Wang 1003777754 wangj589<br>
 
+## Acknowledgement
+This project is build on Linda Lo's simple router code in Fall 2021.
+
 ## Contributions from each member of the team
 Guikang Zhong:<br>
-1.Built the ARP cache.<br>
-2.Built Ethernet, ARP, IP, ICMP headers.<br>
+1.Nat Mapping<br>
+2.<br>
 
 Jingwei Wang:<br>
-1.Hanle ICMP replies<br>
-2.Forward TCP/UDP packets<br>
+1.Handle ICMP translation<br>
+2.Handle TCP translation<br>
 
 ## Documentation for function implementing the required and missed functionalities in the starter code
 We finished all the required functionality.<br>
