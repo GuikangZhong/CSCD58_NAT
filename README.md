@@ -17,7 +17,7 @@ Network Address Translation (NAT) is a technique that solves the shortage of IPv
 2. To test whether NAT works for mutiple internal hosts, we added an additional host (client2) into the topology.<br>
 3. To test whether NAT can handle the "simulataneous open" case, we added an external peer (client3) into the topology.<br><br>
 Please refer to the topology below instead of the one in the NAT handout<br>
-![alt text](/image/modified_topology.svg "modified topology")
+![alt text](/images/modified_topology.svg "modified topology")
 
 ## Contributions from each member of the team
 Guikang Zhong:<br>
