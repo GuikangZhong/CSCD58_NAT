@@ -412,6 +412,7 @@ int handle_nat_tcp(struct sr_instance* sr, uint8_t *ip_packet, unsigned int ip_p
   print_sr_mapping(sr->nat.mappings);
   
   struct sr_nat_mapping *mapping = NULL;
+  struct sr_nat_connection *conn = NULL;
   sr_ip_hdr_t *ip_header = (sr_ip_hdr_t *)(ip_packet);
   unsigned int ip_header_len = (ip_header->ip_hl)*4;
   sr_tcp_hdr_t *tcp_header = (sr_tcp_hdr_t *)(ip_packet + ip_header_len);
@@ -435,7 +436,8 @@ int handle_nat_tcp(struct sr_instance* sr, uint8_t *ip_packet, unsigned int ip_p
       printf("2222222222\n");
       /* insert the connection */
       printf("[state]:\n");
-      sr_nat_insert_connection(&sr->nat, mapping->aux_ext, (uint8_t *)ip_header, SYN_SENT);
+      conn = sr_nat_insert_connection(&sr->nat, mapping->aux_ext, (uint8_t *)ip_header, SYN_SENT);
+      printf("%d\n", conn->state);
       printf("3333333333\n");
     } else {
       printf("[state]:\n");
