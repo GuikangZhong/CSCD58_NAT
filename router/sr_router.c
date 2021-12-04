@@ -427,6 +427,8 @@ int handle_nat_tcp(struct sr_instance* sr, uint8_t *ip_packet, unsigned int ip_p
     printf("[NAT]: internal -> external\n");
     print_hdr_tcp((uint8_t *)tcp_header);
     mapping = sr_nat_lookup_internal(&sr->nat, ntohl(ip_header->ip_src), ntohs(tcp_header->src_port), nat_mapping_tcp);
+    printf("11111111111\n");
+
     /* if empty or time out -> insert */
     if (!mapping) {
       mapping = sr_nat_insert_mapping(&sr->nat, ntohl(ip_header->ip_src), ntohs(tcp_header->src_port), nat_mapping_tcp);
