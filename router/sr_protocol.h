@@ -174,7 +174,7 @@ struct sr_ip_hdr
     unsigned int ip_v:4;		/* version */
     unsigned int ip_hl:4;		/* header length */
 #else
-#error "Byte ordering ot specified " 
+#error "Byte ordering not specified " 
 #endif 
     uint8_t ip_tos;			/* type of service */
     uint16_t ip_len;			/* total length */
@@ -190,6 +190,58 @@ struct sr_ip_hdr
     uint32_t ip_src, ip_dst;	/* source and dest address */
   } __attribute__ ((packed)) ;
 typedef struct sr_ip_hdr sr_ip_hdr_t;
+
+/*-----------------------------------------------------------------------------
+                                  TCP Packets
+  ----------------------------------------------------------------------------*/
+
+/* 
+ * Structure of an TCP header
+ */
+struct sr_tcp_hdr {
+  uint16_t src_port; /* source port */
+  uint16_t dst_port; /* destination port */
+  uint32_t seq_num; /* sequence number */
+  uint32_t ack_num; /* acknowledgment number */
+
+#if __BYTE_ORDER == __LITTLE_ENDIAN
+  unsigned int reserved: 4; /* Reserved for future use.  Must be zero */
+  unsigned int data_offset: 4; /* data offset */
+  unsigned int FIN: 1; /* End of data flag */
+  unsigned int SYN: 1; /* Synchronize sequence numbers flag */
+  unsigned int RST: 1; /* Reset connection flag */
+  unsigned int PSH: 1; /* Push flag */
+  unsigned int ACK: 1; /* Acknowledgment number valid flag */
+  unsigned int URG: 1; /* Urgent pointer valid flag */
+  unsigned int ecn: 2; /* Explicit Congestion Notification */
+
+#elif __BYTE_ORDER == __BIG_ENDIAN
+  unsigned int data_offset: 4; /* data offset */
+  unsigned int reserved: 3; /* Reserved for future use.  Must be zero */
+  unsigned int ecn: 3; /* Explicit Congestion Notification */
+  unsigned int URG: 1; /* Urgent pointer valid flag */
+  unsigned int ACK: 1; /* Acknowledgment number valid flag */
+  unsigned int PSH: 1; /* Push flag */
+  unsigned int RST: 1; /* Reset connection flag */
+  unsigned int SYN: 1; /* Synchronize sequence numbers flag */
+  unsigned int FIN: 1; /* End of data flag */
+#else
+#error "Byte ordering not specified " 
+#endif 
+  uint16_t window; /* receiving window size */
+  uint16_t checksum; 
+  uint16_t urgent_pointer; 
+} __attribute__ ((packed));
+typedef struct sr_tcp_hdr sr_tcp_hdr_t;
+
+struct sr_tcp_pseudo_hdr {
+  uint32_t src_ip;
+  uint32_t dst_ip;
+  uint8_t reserved;
+  uint8_t protocol;
+  uint16_t tcp_len;
+}__attribute__ ((packed));
+typedef struct sr_tcp_pseudo_hdr sr_tcp_pseudo_hdr_t;
 
 /*-----------------------------------------------------------------------------
                                   ICMP Packets
@@ -214,7 +266,8 @@ struct sr_icmp_hdr {
   uint8_t icmp_type;
   uint8_t icmp_code;
   uint16_t icmp_sum;
-  uint32_t variable_field;
+  uint16_t identifier;
+  uint16_t seq_num;
 } __attribute__ ((packed)) ;
 typedef struct sr_icmp_hdr sr_icmp_hdr_t;
 

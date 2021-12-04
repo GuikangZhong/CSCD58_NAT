@@ -68,7 +68,7 @@ int sr_connect_to_server(struct sr_instance* ,unsigned short , char* );
 int sr_read_from_server(struct sr_instance* );
 
 /* -- sr_router.c -- */
-void sr_init(struct sr_instance* );
+void sr_init(struct sr_instance*, unsigned int icmp_query_to, unsigned int tcp_estab_idle_to, unsigned int tcp_transitory_to);
 void sr_handlepacket(struct sr_instance* , uint8_t * , unsigned int , char* );
 void sr_send_arp(struct sr_instance* sr,
                  char* interface/*lent*/,
@@ -81,6 +81,9 @@ void sr_send_icmp(struct sr_instance* sr,
                   uint8_t type,
                   uint8_t code);
 
+/* -- sr_nat.c -- */
+int handle_nat_icmp(struct sr_instance* sr, uint8_t *ip_packet);
+int handle_nat_tcp(struct sr_instance* sr, uint8_t *ip_packet, unsigned int ip_packet_len, int is_to_nat);
 
 /* -- sr_if.c -- */
 void sr_add_interface(struct sr_instance* , const char* );
