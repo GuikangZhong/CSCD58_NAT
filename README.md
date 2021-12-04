@@ -32,7 +32,144 @@ Jingwei Wang:<br>
 
 
 
-## Documentation for function implementing the required and missed functionalities in the starter code
+## implementation details and documentation
+sr_rt.c<br>
+sr_rt.h<br>
+```C
+/*---------------------------------------------------------------------
+ * Method: nat_handle_tcp
+ * Input: struct sr_instance* sr, uint8_t *ip_packet,
+ * unsigned int ip_packet_len, int is_to_nat
+ * Output: int
+ * Scope:  Global
+ *
+ * Translate the ip address and or port for a given tcp packet with an ip header,
+ * return a status code, 1 for successful translation, 0 for no translation required
+ * and -1 is a signal to the router to drop the packet due to connection no found or timeout.
+ *---------------------------------------------------------------------*/
+int nat_handle_tcp(struct sr_instance* sr, uint8_t *ip_packet, unsigned int ip_packet_len, int is_to_nat);
+
+/*---------------------------------------------------------------------
+ * Method: nat_handle_icmp
+ * Input: struct sr_instance* sr, uint8_t *ip_packet,
+ * Output: int
+ * Scope:  Global
+ *
+ * Translate the ip address and or ICMP identifier for a given ICPM packet with an ip header,
+ * return a status code, 1 for successful translation, 0 for no translation required.
+ *---------------------------------------------------------------------*/
+int nat_handle_icmp(struct sr_instance* sr, uint8_t *ip_packet);
+```
+
+sr_utils.c<br>
+sr_utils.h<br>
+```C
+/* return 1 if the given ip is one of the private class of ip */
+int is_private_ip(uint32_t ip);
+
+/* Prints out formated connection state */
+void print_state(sr_tcp_state_type state);
+
+/* print out formatted mappings */
+void print_sr_mapping(struct sr_nat_mapping *mapping);
+```
+
+sr_nat.c<br>
+sr_nat.h<br>
+```C
+/*---------------------------------------------------------------------
+ * Method: sr_nat_init(void)
+ * Scope:  Global
+ *
+ * Initialize the NAT
+ *---------------------------------------------------------------------*/
+int sr_nat_init(struct sr_instance *sr, unsigned int icmp_query_to, 
+                unsigned int tcp_estab_idle_to, unsigned int tcp_transitory_to);
+
+/*---------------------------------------------------------------------
+ * Method: sr_nat_destroy(int)
+ * Scope:  Global
+ *
+ * Destroys the nat (free memory)
+ *---------------------------------------------------------------------*/
+int sr_nat_destroy(struct sr_nat *nat);
+
+/*---------------------------------------------------------------------
+ * Method: sr_nat_timeout(void)
+ * Scope:  Global
+ *
+ * Periodic Timout handling
+ *---------------------------------------------------------------------*/
+void *sr_nat_timeout(void *sr_ptr);
+
+/*---------------------------------------------------------------------
+ * Method: sr_nat_lookup_external(struct sr_nat_mapping *)
+ * Scope:  Global
+ *
+ * Get the mapping associated with given external port.
+ * You must free the returned structure if it is not NULL.
+ *---------------------------------------------------------------------*/
+struct sr_nat_mapping *sr_nat_lookup_external(struct sr_nat *nat,
+    uint16_t aux_ext, sr_nat_mapping_type type );
+
+/*---------------------------------------------------------------------
+ * Method: sr_nat_lookup_internal(struct sr_nat_mapping *)
+ * Scope:  Global
+ *
+ * Get the mapping associated with given internal (ip, port) pair.
+ * You must free the returned structure if it is not NULL.
+ *---------------------------------------------------------------------*/
+struct sr_nat_mapping *sr_nat_lookup_internal(struct sr_nat *nat,
+    uint32_t ip_int, uint16_t aux_int, sr_nat_mapping_type type );
+
+/*---------------------------------------------------------------------
+ * Method: sr_nat_insert_mapping(struct sr_nat_mapping *)
+ * Scope:  Global
+ *
+ * Insert a new mapping into the nat's mapping table.
+ * Actually returns a copy to the new mapping, for thread safety.
+ * You must free the returned structure if it is not NULL.
+ *---------------------------------------------------------------------*/
+struct sr_nat_mapping *sr_nat_insert_mapping(struct sr_nat *nat,
+  uint32_t ip_int, uint16_t aux_int, sr_nat_mapping_type type );
+
+/*---------------------------------------------------------------------
+ * Method: find_next_id(int)
+ * Scope:  Global
+ *
+ * Return the next avaliable id used for external icmp identifier or tcp port.
+ *---------------------------------------------------------------------*/
+int find_next_id(struct sr_nat *nat);
+
+/*---------------------------------------------------------------------
+ * Method: sr_nat_insert_connection(struct sr_nat_connection *)
+ * Scope:  Global
+ *
+ * Insert a new connection into the coresponsing mapping wrt the nat's external port.
+ * Actually returns a copy to the new connection, for thread safety.
+ * You must free the returned structure if it is not NULL.
+ *---------------------------------------------------------------------*/
+struct sr_nat_connection *sr_nat_insert_connection(struct sr_nat *nat, uint16_t ext_port, uint8_t *ip_packet, unsigned int state);
+
+/*---------------------------------------------------------------------
+ * Method: sr_nat_update_connection(struct sr_nat_connection *)
+ * Scope:  Global
+ *
+ * Look up a connection for a given mapping and update the connection's state.
+ * Actually returns a copy to the updated connection, for thread safety.
+ * You must free the returned structure if it is not NULL.
+ *---------------------------------------------------------------------*/
+struct sr_nat_connection *sr_nat_update_connection(struct sr_nat *nat, struct sr_nat_mapping *mapping, uint8_t *ip_packet, int direction);
+
+/*---------------------------------------------------------------------
+ * Method: _determine_state(sr_tcp_state_type)
+ * Scope:  Local
+ *
+ * Based on the current connection state and the tcp flags determine the next state
+ *---------------------------------------------------------------------*/
+sr_tcp_state_type _determine_state(struct sr_nat_connection *conn, sr_tcp_hdr_t *buf);
+```
+
 
 ## List of tests cases run and results
 ### ICMP Echo Request/Reply
