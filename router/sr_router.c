@@ -436,6 +436,7 @@ int handle_nat_tcp(struct sr_instance* sr, uint8_t *ip_packet, unsigned int ip_p
       /* insert the connection */
       printf("[state]:\n");
       sr_nat_insert_connection(&sr->nat, mapping->aux_ext, (uint8_t *)ip_header, SYN_SENT);
+      printf("3333333333\n");
     } else {
       printf("[state]:\n");
       printf("%d\n",sr_nat_update_connection(&sr->nat, mapping, (uint8_t *)ip_packet, 0)->state);
