@@ -109,7 +109,7 @@ void *sr_nat_timeout(void *sr_ptr) {  /* Periodic Timout handling */
         struct sr_nat_connection *cur_conn = curr->conns;
         
         while (cur_conn != NULL) {
-          if (cur_conn->state == ESTAB && difftime(curtime,cur_conn->last_updated) > DEFAULT_TCP_ESTABLISHED_TO) {
+          if (cur_conn->state == ESTAB && difftime(curtime,cur_conn->last_updated) > nat->tcp_estab_idle_to) {
               pre_conn->next = cur_conn->next;
               free(cur_conn);
               cur_conn = pre_conn->next;
@@ -129,7 +129,7 @@ void *sr_nat_timeout(void *sr_ptr) {  /* Periodic Timout handling */
             cur_conn = pre_conn->next;
           }
 
-          else if (difftime(curtime,cur_conn->last_updated) > DEFAULT_TCP_TRANSITORY_TO) {
+          else if (difftime(curtime,cur_conn->last_updated) > nat->tcp_transitory_to) {
             pre_conn->next = cur_conn->next;
             free(cur_conn);
             cur_conn = pre_conn->next;
