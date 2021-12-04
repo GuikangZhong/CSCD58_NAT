@@ -320,11 +320,13 @@ struct sr_nat_connection *sr_nat_update_connection(struct sr_nat *nat, struct sr
   if (curr) {
     /* external -> internal */
     if (direction == 1) {
+      printf("[update_connection] foud a map (inbound)\n");
       curr->state = determine_state(curr, tcp_header);
       curr->last_updated = time(NULL);
       /* if external to internal, find the connection with peer_ip and peer_port
           matched to the input */
     } else {
+      printf("[update_connection] foud a map (outbound)\n");
       /* internal -> external*/
       curr->state = determine_state(curr, tcp_header);
       curr->last_updated = time(NULL);
