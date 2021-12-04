@@ -187,8 +187,28 @@ rtt min/avg/max/mdev = 21.926/204.334/500.355/211.193 ms
 ```
 In Wireshark <br>
 ![alt text](/images/ICMP_echo_request_eth1.PNG "ICMP_echo_request_eth1") <br>
-<div align="center"><b>Fig.1 - ICMP_echo_request_eth1</b></div> <br>
+<div align="center"><b>Fig.1 - client1's echo request to server1 at eth1</b></div> <br>
 
 ![alt text](/images/ICMP_echo_request_eth2.PNG "ICMP_echo_request_eth2") <br>
-<div align="center"> <b>Fig.2 - ICMP_echo_request_eth2</b></div> <br>
-As you can see the red cirles in these two screenshots, after the ICMP request packet goes from eth1 to eth2, the IP address of client 1 has changed to the IP address of the router eth5. And the identifier has been changed from 3337 to 1024 (As 0-1023 are reserverd).
+<div align="center"> <b>Fig.2 - client1's echo request to server1_eth2</b></div> <br>
+As you can see the red cirles in these two screenshots, after the ICMP request packet goes from eth1 to eth2, the IP address of client 1 has changed to the IP address of the router eth5. And the identifier has been changed from 3337 to 1024 (As 0-1023 are reserverd). <br>
+
+Same thing for client 2: <br>
+```console
+mininet> client2 ping -c3 server1
+PING 172.64.3.21 (172.64.3.21) 56(84) bytes of data.
+64 bytes from 172.64.3.21: icmp_seq=1 ttl=63 time=790 ms
+64 bytes from 172.64.3.21: icmp_seq=2 ttl=63 time=9.95 ms
+64 bytes from 172.64.3.21: icmp_seq=3 ttl=63 time=73.4 ms
+
+--- 172.64.3.21 ping statistics ---
+3 packets transmitted, 3 received, 0% packet loss, time 2002ms
+rtt min/avg/max/mdev = 9.948/291.098/789.954/353.693 ms
+```
+In Wireshark <br>
+![alt text](/images/client2_ICMP_echo_request_eth4.PNG "client2_ICMP_echo_request_eth4") <br>
+<div align="center"><b>Fig.3 - client2's echo request to server1 at eth4</b></div> <br>
+
+![alt text](/images/client2_ICMP_echo_request_eth4.PNG "client2_ICMP_echo_request_eth2") <br>
+<div align="center"> <b>Fig.4 - client2's echo request to server1_eth2</b></div> <br>
+As you can see the red cirles in these two screenshots, after the ICMP request packet goes from eth1 to eth2, the IP address of client 1 has changed to the IP address of the router eth5. And the identifier has been changed from 3337 to 1024 (As 0-1023 are reserverd). <br>
