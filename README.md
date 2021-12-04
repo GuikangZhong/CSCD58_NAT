@@ -49,5 +49,10 @@ PING 172.64.3.21 (172.64.3.21) 56(84) bytes of data.
 rtt min/avg/max/mdev = 21.926/204.334/500.355/211.193 ms
 ```
 Packets caught in Wireshark <br>
-![alt text](/images/ICMP_echo_request_eth1.PNG "ICMP_echo_request_eth1")
-![alt text](/images/ICMP_echo_request_eth2.PNG "ICMP_echo_request_eth2")
+| ![alt text](/images/ICMP_echo_request_eth1.PNG "ICMP_echo_request_eth1") |
+|:--:|
+| <b>Image Credits - Fig.2 - 4K Mountains Wallpaper</b>|
+
+| ![alt text](/images/ICMP_echo_request_eth2.PNG "ICMP_echo_request_eth2") |
+|:--:|
+| <b>Image Credits - Fig.2 - 4K Mountains Wallpaper</b>|
