@@ -440,8 +440,11 @@ int handle_nat_tcp(struct sr_instance* sr, uint8_t *ip_packet, unsigned int ip_p
     } else {
       printf("updating connection: internal -> external\n");
       conn = sr_nat_update_connection(&sr->nat, mapping, (uint8_t *)ip_packet, 0);
+      if (!conn) {
+        printf("updating connection fail, connection not found\n");
+        return 1;
+      }
       printf("[state]:\n");
-      print_addr_ip_int(conn->peer_ip);
       print_state(conn->state);
     }
 
@@ -488,8 +491,11 @@ int handle_nat_tcp(struct sr_instance* sr, uint8_t *ip_packet, unsigned int ip_p
       if (mapping) {
         printf("updating connection: external -> internal\n");
         conn = sr_nat_update_connection(&sr->nat, mapping, (uint8_t *)ip_packet, 1);
+        if (!conn) {
+          printf("updating connection fail, connection not found\n");
+          return 1;
+        }
         printf("[state]:\n");
-        print_addr_ip_int(conn->peer_ip);
         print_state(conn->state);
         tcp_header->dst_port = htons(mapping->aux_int);
         ip_header->ip_dst = htonl(mapping->ip_int);

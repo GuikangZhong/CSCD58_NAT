@@ -60,6 +60,8 @@ void print_state(sr_tcp_state_type state) {
     printf("CLOST_WAIT\n");
   } else if (state == LAST_ACK) {
     printf("LAST_ACK\n");
+  } else {
+    printf("UNKNOWN\n");
   }
 }
 
