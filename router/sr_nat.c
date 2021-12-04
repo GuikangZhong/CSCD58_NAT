@@ -377,5 +377,5 @@ int determine_state(struct sr_nat_connection *conn, sr_tcp_hdr_t *buf) {
   else if (conn->state == FIN_WAIT_2 && buf->FIN == 1) {
     return CLOSED;
   }
-  return -1;
+  return conn->state;
 }
