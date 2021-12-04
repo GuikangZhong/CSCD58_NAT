@@ -9,12 +9,14 @@ This project is build on Linda Lo's simple router code in Fall 2021.
 
 ## Contributions from each member of the team
 Guikang Zhong:<br>
-1.Nat Mapping<br>
-2.<br>
+1.Built Nat Mapping<br>
+2.Handled IP translation for ICMP case<br>
+3.Handled IP translationfor TCP case<br>
 
 Jingwei Wang:<br>
-1.Handle ICMP translation<br>
-2.Handle TCP translation<br>
+1.Handled IP translation for ICMP case<br>
+2.Handled IP translationfor TCP case<br>
+3.Handled TCP state trasition<br>
 
 ## Documentation for function implementing the required and missed functionalities in the starter code
 We finished all the required functionality.<br>
