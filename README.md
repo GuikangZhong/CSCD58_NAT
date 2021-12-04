@@ -173,7 +173,7 @@ sr_tcp_state_type _determine_state(struct sr_nat_connection *conn, sr_tcp_hdr_t 
 
 ## List of tests cases run and results
 ### ICMP Echo Request/Reply
-1. Pinging from the internal hosts to any external hosts.
+1. Pinging from the internal hosts to any external hosts in NAT mode
 ```console
 mininet> client1 ping -c3 server1
 PING 172.64.3.21 (172.64.3.21) 56(84) bytes of data.
@@ -210,4 +210,26 @@ In Wireshark <br>
 <div align="center"><b>Fig.3 - client2's echo request to server1 at eth4</b></div> <br>
 
 ![alt text](/images/client2_ICMP_echo_request_eth4.PNG "client2_ICMP_echo_request_eth2") <br>
-<div align="center"> <b>Fig.4 - client2's echo request to server1_eth2</b></div> <br>
+<div align="center"> <b>Fig.4 - client2's echo request to server1 at eth2</b></div> <br>
+
+### TCP Connections
+2. Open a TCP connection from client1 to server1 in NAT mode
+```console
+mininet> client2 wget http://172.64.3.22
+--2021-12-04 14:50:26--  http://172.64.3.22/
+Connecting to 172.64.3.22:80... connected.
+HTTP request sent, awaiting response... 200 OK
+Length: 161 [text/html]
+Saving to: 'index.html.15'
+
+index.html.15       100%[===================>]     161  --.-KB/s    in 0s
+
+2021-12-04 14:50:28 (97.0 MB/s) - 'index.html.15' saved [161/161]
+```
+In Wireshark <br>
+![alt text](/images/client2_tcp_conn_eth4.PNG "client2_tcp_conn_eth4") <br>
+<div align="center"><b>Fig.5 - client2's TCP connection to server2 at eth4</b></div> <br>
+
+![alt text](/images/client2_tcp_conn_eth3.PNG "client2_tcp_conn_eth3") <br>
+<div align="center"> <b>Fig.6 - client2's TCP connection to server2 at eth3</b></div> <br>
+As you can see, client 2 uses its IP address 10.0.1.101 and port number 49478 to send TCP packets. In the perspective of server2, these incoming packets are from IP 172.64.3.2, Port 1024, and vice versa. This means our NAT successfully rewrites TCP packets from internal hosts to external hosts, and vice versa. <br><br>
