@@ -97,6 +97,6 @@ struct sr_nat_connection *sr_nat_update_connection(struct sr_nat *nat, struct sr
 
 struct sr_nat_connection *sr_nat_insert_connection(struct sr_nat *nat, uint16_t ext_port, uint8_t *ip_buf, unsigned int state);
 
-int determine_state(struct sr_nat_connection *conn, sr_tcp_hdr_t *buf);
+sr_tcp_state_type _determine_state(struct sr_nat_connection *conn, sr_tcp_hdr_t *buf);
 
 #endif

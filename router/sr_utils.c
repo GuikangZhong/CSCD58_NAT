@@ -19,6 +19,7 @@ uint16_t cksum (const void *_data, int len) {
   return sum ? sum : 0xffff;
 }
 
+/* return 1 if the given ip is one of the private class of ip */
 int is_private_ip(uint32_t ip) {
   /* Class A: 10.0. 0.0 — 10.255. 255.255 */
   if ((ip & 0xff000000) == 0x0a000000) {
@@ -37,6 +38,7 @@ int is_private_ip(uint32_t ip) {
   return 0;
 }
 
+/* Prints out formated connection state */
 void print_state(sr_tcp_state_type state) {
   if (state == CLOSED) {
     printf("CLOSED\n");
@@ -197,6 +199,7 @@ void print_hdr_arp(uint8_t *buf) {
   print_addr_ip_int(ntohl(arp_hdr->ar_tip));
 }
 
+/* print out formatted mappings */
 void print_sr_mapping(struct sr_nat_mapping *mapping) {
   fprintf(stderr, "\nIP_INT       aux_int       aux_ext          type\n");
   fprintf(stderr, "-----------------------------------------------------------\n");

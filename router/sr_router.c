@@ -358,7 +358,7 @@ void sr_handle_ippacket(struct sr_instance* sr,
       } else {
         
         /* if nat is enabled and we can find a match in NAT */
-        if (sr->nat_enabled && icmp_header->icmp_type == 0 && handle_nat_icmp(sr, packet)) {
+        if (sr->nat_enabled && icmp_header->icmp_type == 0 && nat_handle_icmp(sr, packet)) {
             printf("[NAT]: translated public ip to privite ip for ICMP\n");
             sr_forward_ippacket(sr, (sr_ip_hdr_t*) packet, len, interface);
           return;
@@ -371,7 +371,7 @@ void sr_handle_ippacket(struct sr_instance* sr,
     } else if (protocol == ip_protocol_tcp || protocol == ip_protocol_udp) {
       /* if nat is enabled and we can find a match in NAT */
       if (sr->nat_enabled && protocol == ip_protocol_tcp) {
-        int code = handle_nat_tcp(sr, packet, len, 1);
+        int code = nat_handle_tcp(sr, packet, len, 1);
         if (code == 1) {
           printf("[NAT]: translated public ip to privite ip for TCP\n");
           sr_forward_ippacket(sr, (sr_ip_hdr_t*) packet, len, interface);
@@ -396,10 +396,10 @@ void sr_handle_ippacket(struct sr_instance* sr,
     
     if (sr->nat_enabled && protocol == ip_protocol_icmp) {
       /* Change the internal IP to external IP */
-      handle_nat_icmp(sr, packet);
+      nat_handle_icmp(sr, packet);
     }
     else if (sr->nat_enabled && protocol == ip_protocol_tcp) {
-      int success = handle_nat_tcp(sr, packet, len, 0);
+      int success = nat_handle_tcp(sr, packet, len, 0);
       if (success==0 || success == -1) {
         return;
       }
@@ -412,7 +412,18 @@ void sr_handle_ippacket(struct sr_instance* sr,
   return;
 } /* end sr_handle_ippacket */
 
-int handle_nat_tcp(struct sr_instance* sr, uint8_t *ip_packet, unsigned int ip_packet_len, int is_to_nat) {
+/*---------------------------------------------------------------------
+ * Method: nat_handle_tcp
+ * Input: struct sr_instance* sr, uint8_t *ip_packet,
+ * unsigned int ip_packet_len, int is_to_nat
+ * Output: int
+ * Scope:  Global
+ *
+ * Translate the ip address and or port for a given tcp packet with an ip header,
+ * return a status code, 1 for successful translation, 0 for no translation required
+ * and -1 is a signal to the router to drop the packet due to connection no found or timeout.
+ *---------------------------------------------------------------------*/
+int nat_handle_tcp(struct sr_instance* sr, uint8_t *ip_packet, unsigned int ip_packet_len, int is_to_nat) {
   print_sr_mapping(sr->nat.mappings);
   
   struct sr_nat_mapping *mapping = NULL;
@@ -538,7 +549,16 @@ int handle_nat_tcp(struct sr_instance* sr, uint8_t *ip_packet, unsigned int ip_p
   return 1;
 }
 
-int handle_nat_icmp(struct sr_instance* sr, uint8_t *ip_packet) {
+/*---------------------------------------------------------------------
+ * Method: nat_handle_icmp
+ * Input: struct sr_instance* sr, uint8_t *ip_packet,
+ * Output: int
+ * Scope:  Global
+ *
+ * Translate the ip address and or ICMP identifier for a given ICPM packet with an ip header,
+ * return a status code, 1 for successful translation, 0 for no translation required.
+ *---------------------------------------------------------------------*/
+int nat_handle_icmp(struct sr_instance* sr, uint8_t *ip_packet) {
   print_sr_mapping(sr->nat.mappings);
 
   struct sr_nat_mapping *mapping;

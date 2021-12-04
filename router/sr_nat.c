@@ -14,8 +14,13 @@
 
 int find_next_id(struct sr_nat *nat);
 
-int sr_nat_init(struct sr_instance *sr, unsigned int icmp_query_to, unsigned int tcp_estab_idle_to, unsigned int tcp_transitory_to) { /* Initializes the nat */
-
+/*---------------------------------------------------------------------
+ * Method: sr_nat_init(void)
+ * Scope:  Global
+ *
+ * Initialize the NAT
+ *---------------------------------------------------------------------*/
+int sr_nat_init(struct sr_instance *sr, unsigned int icmp_query_to, unsigned int tcp_estab_idle_to, unsigned int tcp_transitory_to) {
   assert(sr);
   assert(&(sr->nat));
 
@@ -48,9 +53,13 @@ int sr_nat_init(struct sr_instance *sr, unsigned int icmp_query_to, unsigned int
   return success;
 }
 
-
-int sr_nat_destroy(struct sr_nat *nat) {  /* Destroys the nat (free memory) */
-
+/*---------------------------------------------------------------------
+ * Method: sr_nat_destroy(int)
+ * Scope:  Global
+ *
+ * Destroys the nat (free memory)
+ *---------------------------------------------------------------------*/
+int sr_nat_destroy(struct sr_nat *nat) {
   pthread_mutex_lock(&(nat->lock));
 
   /* free nat memory here */
@@ -68,7 +77,13 @@ int sr_nat_destroy(struct sr_nat *nat) {  /* Destroys the nat (free memory) */
 
 }
 
-void *sr_nat_timeout(void *sr_ptr) {  /* Periodic Timout handling */
+/*---------------------------------------------------------------------
+ * Method: sr_nat_timeout(void)
+ * Scope:  Global
+ *
+ * Periodic Timout handling
+ *---------------------------------------------------------------------*/
+void *sr_nat_timeout(void *sr_ptr) {
   struct sr_instance *sr = sr_ptr;
   struct sr_nat *nat = &(sr->nat);
   while (1) {
@@ -162,8 +177,13 @@ void *sr_nat_timeout(void *sr_ptr) {  /* Periodic Timout handling */
   return NULL;
 }
 
-/* Get the mapping associated with given external port.
-   You must free the returned structure if it is not NULL. */
+/*---------------------------------------------------------------------
+ * Method: sr_nat_lookup_external(struct sr_nat_mapping *)
+ * Scope:  Global
+ *
+ * Get the mapping associated with given external port.
+ * You must free the returned structure if it is not NULL.
+ *---------------------------------------------------------------------*/
 struct sr_nat_mapping *sr_nat_lookup_external(struct sr_nat *nat,
     uint16_t aux_ext, sr_nat_mapping_type type ) {
   
@@ -191,8 +211,13 @@ struct sr_nat_mapping *sr_nat_lookup_external(struct sr_nat *nat,
   return copy;
 }
 
-/* Get the mapping associated with given internal (ip, port) pair.
-   You must free the returned structure if it is not NULL. */
+/*---------------------------------------------------------------------
+ * Method: sr_nat_lookup_internal(struct sr_nat_mapping *)
+ * Scope:  Global
+ *
+ * Get the mapping associated with given internal (ip, port) pair.
+ * You must free the returned structure if it is not NULL.
+ *---------------------------------------------------------------------*/
 struct sr_nat_mapping *sr_nat_lookup_internal(struct sr_nat *nat,
   uint32_t ip_int, uint16_t aux_int, sr_nat_mapping_type type ) {
 
@@ -217,9 +242,14 @@ struct sr_nat_mapping *sr_nat_lookup_internal(struct sr_nat *nat,
   return copy;
 }
 
-/* Insert a new mapping into the nat's mapping table.
-   Actually returns a copy to the new mapping, for thread safety.
- */
+/*---------------------------------------------------------------------
+ * Method: sr_nat_insert_mapping(struct sr_nat_mapping *)
+ * Scope:  Global
+ *
+ * Insert a new mapping into the nat's mapping table.
+ * Actually returns a copy to the new mapping, for thread safety.
+ * You must free the returned structure if it is not NULL.
+ *---------------------------------------------------------------------*/
 struct sr_nat_mapping *sr_nat_insert_mapping(struct sr_nat *nat,
   uint32_t ip_int, uint16_t aux_int, sr_nat_mapping_type type ) {
 
@@ -245,6 +275,12 @@ struct sr_nat_mapping *sr_nat_insert_mapping(struct sr_nat *nat,
   return mapping;
 }
 
+/*---------------------------------------------------------------------
+ * Method: find_next_id(int)
+ * Scope:  Global
+ *
+ * Return the next avaliable id used for external icmp identifier or tcp port.
+ *---------------------------------------------------------------------*/
 int find_next_id(struct sr_nat *nat) {
   /* loop through the bitmap */
   int i;
@@ -263,6 +299,14 @@ int find_next_id(struct sr_nat *nat) {
   return -1;
 }
 
+/*---------------------------------------------------------------------
+ * Method: sr_nat_insert_connection(struct sr_nat_connection *)
+ * Scope:  Global
+ *
+ * Insert a new connection into the coresponsing mapping wrt the nat's external port.
+ * Actually returns a copy to the new connection, for thread safety.
+ * You must free the returned structure if it is not NULL.
+ *---------------------------------------------------------------------*/
 struct sr_nat_connection *sr_nat_insert_connection(struct sr_nat *nat, uint16_t ext_port, uint8_t *ip_packet, unsigned int state) {
 
   pthread_mutex_lock(&(nat->lock));
@@ -303,6 +347,14 @@ struct sr_nat_connection *sr_nat_insert_connection(struct sr_nat *nat, uint16_t 
   return copy;
 }
 
+/*---------------------------------------------------------------------
+ * Method: sr_nat_update_connection(struct sr_nat_connection *)
+ * Scope:  Global
+ *
+ * Look up a connection for a given mapping and update the connection's state.
+ * Actually returns a copy to the updated connection, for thread safety.
+ * You must free the returned structure if it is not NULL.
+ *---------------------------------------------------------------------*/
 struct sr_nat_connection *sr_nat_update_connection(struct sr_nat *nat, struct sr_nat_mapping *mapping, uint8_t *ip_packet, int direction) {
   /* 1: external -> internal ; ow */
   pthread_mutex_lock(&(nat->lock));
@@ -332,7 +384,7 @@ struct sr_nat_connection *sr_nat_update_connection(struct sr_nat *nat, struct sr
   if (curr) {
     /* external -> internal */
     if (direction == 1) {
-      curr->state = determine_state(curr, tcp_header);
+      curr->state = _determine_state(curr, tcp_header);
       curr->last_updated = time(NULL);
       /* if external to internal, find the connection with peer_ip and peer_port
           matched to the input */
@@ -340,7 +392,7 @@ struct sr_nat_connection *sr_nat_update_connection(struct sr_nat *nat, struct sr
     /* internal -> external */
     else 
     {
-      curr->state = determine_state(curr, tcp_header);
+      curr->state = _determine_state(curr, tcp_header);
       curr->last_updated = time(NULL);
     }
     copy = (struct sr_nat_connection *)malloc(sizeof(struct sr_nat_connection));
@@ -353,7 +405,13 @@ struct sr_nat_connection *sr_nat_update_connection(struct sr_nat *nat, struct sr
   return copy;
 }
 
-int determine_state(struct sr_nat_connection *conn, sr_tcp_hdr_t *buf) {
+/*---------------------------------------------------------------------
+ * Method: _determine_state(sr_tcp_state_type)
+ * Scope:  Local
+ *
+ * Based on the current connection state and the tcp flags determine the next state
+ *---------------------------------------------------------------------*/
+sr_tcp_state_type _determine_state(struct sr_nat_connection *conn, sr_tcp_hdr_t *buf) {
   if (buf->SYN == 1 && buf->ACK == 0) {
     return SYN_SENT;
   }
