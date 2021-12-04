@@ -442,7 +442,6 @@ int handle_nat_tcp(struct sr_instance* sr, uint8_t *ip_packet, unsigned int ip_p
       conn = sr_nat_update_connection(&sr->nat, mapping, (uint8_t *)ip_packet, 0);
       if (!conn) {
         printf("updating connection fail, connection not found\n");
-        return 1;
       }
       printf("[state]:\n");
       print_state(conn->state);
@@ -493,7 +492,6 @@ int handle_nat_tcp(struct sr_instance* sr, uint8_t *ip_packet, unsigned int ip_p
         conn = sr_nat_update_connection(&sr->nat, mapping, (uint8_t *)ip_packet, 1);
         if (!conn) {
           printf("updating connection fail, connection not found\n");
-          return 1;
         }
         printf("[state]:\n");
         print_state(conn->state);
