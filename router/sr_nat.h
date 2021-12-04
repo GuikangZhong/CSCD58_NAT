@@ -12,7 +12,7 @@
 #define DEFAULT_TCP_TRANSITORY_TO 300
 #define TOTAL_PORTS 65536
 
-#define ClearBit(A,k)   ( A[(k/32)] &= ~(1 << (k%32)) )
+#define ClearBit(A,k)   ( A[(k/32)] &= ~(1 << (k%32)) ) /* Reference website: http://www.mathcs.emory.edu/~cheung/Courses/255/Syllabus/1-C-intro/bit-array.html */
 
 struct sr_instance;
 

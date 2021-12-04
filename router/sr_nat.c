@@ -223,6 +223,7 @@ int find_next_id(struct sr_nat *nat) {
     for ( j = 0; j < 32; j++) {
       if (!(num & 0x01)) {
           int res = (i * 32) + j;
+          nat->bitmap[i] |= (1 << (res % 32));
           return res;
       }
       num = num >> 1;
