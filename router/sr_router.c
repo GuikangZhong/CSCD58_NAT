@@ -437,12 +437,11 @@ int handle_nat_tcp(struct sr_instance* sr, uint8_t *ip_packet, unsigned int ip_p
       /* insert the connection */
       printf("[state]:\n");
       conn = sr_nat_insert_connection(&sr->nat, mapping->aux_ext, (uint8_t *)ip_header, SYN_SENT);
-      printf("5555555555\n");
-      printf("%d\n", conn->state);
-      printf("3333333333\n");
+      print_state(conn->state);
     } else {
       printf("[state]:\n");
-      printf("%d\n",sr_nat_update_connection(&sr->nat, mapping, (uint8_t *)ip_packet, 0)->state);
+      conn = sr_nat_update_connection(&sr->nat, mapping, (uint8_t *)ip_packet, 0);
+      print_state(conn->state);
     }
 
     /* mapping is valid -> translate src ip to public ip*/
@@ -487,7 +486,8 @@ int handle_nat_tcp(struct sr_instance* sr, uint8_t *ip_packet, unsigned int ip_p
       /* if mapping is valid -> translate dst ip to private ip*/
       if (mapping) {
         printf("[state]:\n");
-        printf("%d\n",sr_nat_update_connection(&sr->nat, mapping, (uint8_t *)ip_packet, 1)->state);
+        conn = sr_nat_update_connection(&sr->nat, mapping, (uint8_t *)ip_packet, 1);
+        print_state(conn->state);
         tcp_header->dst_port = htons(mapping->aux_int);
         ip_header->ip_dst = htonl(mapping->ip_int);
       }

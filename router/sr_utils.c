@@ -37,6 +37,32 @@ int is_private_ip(uint32_t ip) {
   return 0;
 }
 
+void print_state(sr_tcp_state_type state) {
+  if (state == CLOSED) {
+    printf("CLOSED\n");
+  } else if (state == LISTEN) {
+    printf("LISTEN\n");
+  } else if (state == SYN_SENT) {
+    printf("SYN_SENT\n");
+  } else if (state == SYN_RCVD) {
+    printf("SYN_RCVD\n");
+  } else if (state == ESTAB) {
+    printf("ESTAB\n");
+  } else if (state == FIN_WAIT_1) {
+    printf("FIN_WAIT_1\n");
+  } else if (state == FIN_WAIT_2) {
+    printf("FIN_WAIT_2\n");
+  } else if (state == CLOSING) {
+    printf("CLOSING\n");
+  } else if (state == TIME_WAIT) {
+    printf("TIME_WAIT\n");
+  } else if (state == CLOST_WAIT) {
+    printf("CLOST_WAIT\n");
+  } else if (state == LAST_ACK) {
+    printf("LAST_ACK\n");
+  }
+}
+
 /* Prints out formatted Ethernet address, e.g. 00:11:22:33:44:55 */
 void print_addr_eth(uint8_t *addr) {
   int pos = 0;
