@@ -436,11 +436,13 @@ int handle_nat_tcp(struct sr_instance* sr, uint8_t *ip_packet, unsigned int ip_p
       printf("inserting connection:\n");
       conn = sr_nat_insert_connection(&sr->nat, mapping->aux_ext, (uint8_t *)ip_header, SYN_SENT);
       printf("[state]:\n");
+      print_addr_ip_int(conn->peer_ip);
       /* print_state(conn->state); */
     } else {
       printf("updating connection:\n");
       conn = sr_nat_update_connection(&sr->nat, mapping, (uint8_t *)ip_packet, 0);
       printf("[state]:\n");
+      print_addr_ip_int(conn->peer_ip);
       /* print_state(conn->state); */
     }
 
@@ -488,6 +490,7 @@ int handle_nat_tcp(struct sr_instance* sr, uint8_t *ip_packet, unsigned int ip_p
         printf("updating connection:\n");
         conn = sr_nat_update_connection(&sr->nat, mapping, (uint8_t *)ip_packet, 1);
         printf("[state]:\n");
+        print_addr_ip_int(conn->peer_ip);
         /* print_state(conn->state); */
         tcp_header->dst_port = htons(mapping->aux_int);
         ip_header->ip_dst = htonl(mapping->ip_int);
