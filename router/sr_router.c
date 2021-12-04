@@ -581,15 +581,18 @@ int nat_handle_icmp(struct sr_instance* sr, uint8_t *ip_packet) {
     printf("[NAT]: internal -> external\n");
     print_hdr_icmp((uint8_t *)icmp_header);
 
+    /* mapping is valid -> translate src ip to public ip*/
+    sr_rt_t *lpm = sr_rt_lookup(sr->routing_table, ip_header->ip_dst);
+    if (!lpm) {
+      return 0; 
+    }
+
     mapping = sr_nat_lookup_internal(&sr->nat, ntohl(ip_header->ip_src), ntohs(icmp_header->identifier), nat_mapping_icmp);
     /* if empty or time out -> insert */
     if (!mapping) {
       mapping = sr_nat_insert_mapping(&sr->nat, ntohl(ip_header->ip_src), ntohs(icmp_header->identifier), nat_mapping_icmp);
     } 
-
-    /* mapping is valid -> translate src ip to public ip*/
     icmp_header->identifier = htons(mapping->aux_ext);
-    sr_rt_t *lpm = sr_rt_lookup(sr->routing_table, ip_header->ip_dst);
     sr_if_t* interface_info = sr_get_interface(sr, lpm->interface);
     ip_header->ip_src = interface_info->ip;
 
