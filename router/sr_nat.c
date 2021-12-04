@@ -13,7 +13,6 @@
 #include "sr_rt.h"
 
 int find_next_id(struct sr_nat *nat);
-void reset_id(struct sr_nat *nat, unsigned int ext_id);
 
 int sr_nat_init(struct sr_instance *sr, unsigned int icmp_query_to, unsigned int tcp_estab_idle_to, unsigned int tcp_transitory_to) { /* Initializes the nat */
 
@@ -43,7 +42,7 @@ int sr_nat_init(struct sr_instance *sr, unsigned int icmp_query_to, unsigned int
   nat->tcp_transitory_to = tcp_transitory_to;
 
   int i = 0;
-  for ( i = 0; i < TOTAL_PORTS; i++ )
+  for ( i = 0; i < TOTAL_PORTS/32; i++ )
     nat->bitmap[i] = 0;
 
   return success;
@@ -89,7 +88,7 @@ void *sr_nat_timeout(void *sr_ptr) {  /* Periodic Timout handling */
       if (curr->type == nat_mapping_icmp && difftime(curtime, curr->last_updated) > nat->icmp_query_to) {
         prev->next = curr->next;
         printf("[NAT]: ICMP query timeout, clean mapping of id %d\n", curr->aux_ext);
-        reset_id(nat, curr->aux_ext);
+        ClearBit(nat->bitmap, curr->aux_ext);
         free(curr);
         curr = prev->next;
       }
@@ -217,21 +216,19 @@ struct sr_nat_mapping *sr_nat_insert_mapping(struct sr_nat *nat,
 
 int find_next_id(struct sr_nat *nat) {
   /* loop through the bitmap */
-  int res = -1;
   int i;
-  for (i=DEFAULT_ID; i < TOTAL_PORTS; i++) {
-    if (nat->bitmap[i] == 0) {
-      nat->bitmap[i] = 1;
-      res = i;
-      break;
+  for (i=DEFAULT_ID/32; i < TOTAL_PORTS/32; i++) {
+    int num = nat->bitmap[i];
+    int j;
+    for ( j = 0; j < 32; j++) {
+      if (!(num & 0x01)) {
+          int res = (i * 32) + j;
+          return res;
+      }
+      num = num >> 1;
     }
   }
-  return res;
-}
-
-void reset_id(struct sr_nat *nat, unsigned int ext_id) {
-  /* loop through the bitmap */
-  nat->bitmap[ext_id] = 0;
+  return -1;
 }
 
 struct sr_nat_connection *sr_nat_insert_connection(struct sr_nat *nat, uint8_t *ip_packet, uint16_t ext_port, 

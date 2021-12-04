@@ -12,9 +12,7 @@
 #define DEFAULT_TCP_TRANSITORY_TO 300
 #define TOTAL_PORTS 65536
 
-#define SetBit(A,k)     ( A[(k/32)] |= (1 << (k%32)) )
 #define ClearBit(A,k)   ( A[(k/32)] &= ~(1 << (k%32)) )
-#define TestBit(A,k)    ( A[(k/32)] & (1 << (k%32)) )
 
 struct sr_instance;
 
@@ -67,7 +65,7 @@ struct sr_nat {
   unsigned int icmp_query_to; /* icmp query timeout */
   unsigned int tcp_estab_idle_to; /* tcp established timeout */
   unsigned int tcp_transitory_to; /* tcp transitory timeout */
-  uint8_t bitmap[TOTAL_PORTS]; /* bit map to check if a ext id is in use */
+  int bitmap[TOTAL_PORTS / 32]; /* bit map to check if a ext id is in use */
 
   /* threading */
   pthread_mutex_t lock;
