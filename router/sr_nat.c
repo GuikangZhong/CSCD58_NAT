@@ -286,7 +286,7 @@ struct sr_nat_connection *sr_nat_insert_connection(struct sr_nat *nat, uint16_t 
     printf("[insert_connection] foud a map\n");
     new_entry->next = curr->conns;
     curr->conns = new_entry;
-    struct sr_nat_connection *copy = (struct sr_nat_connection *) malloc(sizeof(struct sr_nat_connection)); 
+    copy = (struct sr_nat_connection *) malloc(sizeof(struct sr_nat_connection)); 
     memcpy(copy, new_entry, sizeof(struct sr_nat_connection));
   } else {
     printf("[insert_connection] did not find a map\n");
