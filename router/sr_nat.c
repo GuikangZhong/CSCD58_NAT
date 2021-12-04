@@ -85,13 +85,21 @@ void *sr_nat_timeout(void *sr_ptr) {  /* Periodic Timout handling */
 
     while (curr != NULL) {
       /* icmp timeout case */
-      if (curr->type == nat_mapping_icmp && difftime(curtime, curr->last_updated) > nat->icmp_query_to) {
-        prev->next = curr->next;
-        printf("[NAT]: ICMP query timeout, clean mapping of id %d\n", curr->aux_ext);
-        ClearBit(nat->bitmap, curr->aux_ext);
-        free(curr);
-        curr = prev->next;
+      if (curr->type == nat_mapping_icmp) {
+        if (difftime(curtime, curr->last_updated) > nat->icmp_query_to) {
+          prev->next = curr->next;
+          printf("[NAT]: ICMP query timeout, clean mapping of id %d\n", curr->aux_ext);
+          ClearBit(nat->bitmap, curr->aux_ext);
+          free(curr);
+          curr = prev->next;
+        } 
+        else {
+          prev = curr;
+          curr = curr->next;
+        }
       }
+      
+      
       /* tcp connection timeout case */
       else if (curr->type == nat_mapping_tcp) {
         
@@ -107,8 +115,9 @@ void *sr_nat_timeout(void *sr_ptr) {  /* Periodic Timout handling */
             
             if (difftime(curtime,cur_conn->last_updated) > DEFAULT_TCP_ESTABLISHED_TO) {
               flag = 1;
-            } else {
-              flag = 0;
+              pre_conn->next = cur_conn->next;
+              free(cur_conn);
+              cur_conn = pre_conn->next;
             }
             
             /* if (cur_conn->state == SYN_SENT && difftime(curtime,cur_conn->last_updated) > DEFAULT_TCP_SYN_TO) {
@@ -116,9 +125,7 @@ void *sr_nat_timeout(void *sr_ptr) {  /* Periodic Timout handling */
               sr_send_icmp(sr, cur_conn->ip_packet, lpm->interface, icmp_type_dstunreachable, 3); 
             } */
             
-            pre_conn->next = cur_conn->next;
-            free(cur_conn);
-            cur_conn = pre_conn->next;
+
           }
 
           else if (cur_conn->state == CLOSED) {
@@ -129,24 +136,31 @@ void *sr_nat_timeout(void *sr_ptr) {  /* Periodic Timout handling */
 
           else if (difftime(curtime,cur_conn->last_updated) > DEFAULT_TCP_TRANSITORY_TO) {
             flag = 1;
+            pre_conn->next = cur_conn->next;
+            free(cur_conn);
+            cur_conn = pre_conn->next;
           }
-          pre_conn = cur_conn;
-          cur_conn = cur_conn->next;
+          else {
+            flag = 0;
+            pre_conn = cur_conn;
+            cur_conn = cur_conn->next;          
+          }
         }
-
+        
+        curr->conns = dummy_conn->next;
+        free(dummy_conn);
         if (flag) {
           prev->next = curr->next;
           printf("[NAT]: TCP mapping timeout, clean mapping of id %d\n", curr->aux_ext);
           ClearBit(nat->bitmap, curr->aux_ext);
           free(curr);
           curr = prev->next;
+        } 
+        else {
+          prev = curr;
+          curr = curr->next;
         }
-        curr->conns = dummy_conn->next;
-        free(dummy_conn);
       }
-
-      prev = curr;
-      curr = curr->next;
     }
     nat->mappings = dummy_head->next;
     free(dummy_head);
