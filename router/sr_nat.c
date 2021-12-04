@@ -307,11 +307,14 @@ struct sr_nat_connection *sr_nat_update_connection(struct sr_nat *nat, struct sr
   unsigned int ip_header_len = (ip_header->ip_hl)*4;
   sr_tcp_hdr_t *tcp_header = (sr_tcp_hdr_t *)(ip_packet + ip_header_len);
 
+  assert(curr);
   while (curr) {
     if (direction == 1 && curr->peer_ip == ntohl(ip_header->ip_src) && curr->peer_port == ntohs(tcp_header->src_port)) {
+      printf("[update_connection] foud a map (inbound)\n");
       break;
     } 
     else if (direction == 0 && curr->peer_ip == ntohl(ip_header->ip_dst) && curr->peer_port == ntohs(tcp_header->dst_port)) {
+      printf("[update_connection] foud a map (outbound)\n");
       break;
     }
     curr = curr->next;
@@ -320,13 +323,11 @@ struct sr_nat_connection *sr_nat_update_connection(struct sr_nat *nat, struct sr
   if (curr) {
     /* external -> internal */
     if (direction == 1) {
-      printf("[update_connection] foud a map (inbound)\n");
       curr->state = determine_state(curr, tcp_header);
       curr->last_updated = time(NULL);
       /* if external to internal, find the connection with peer_ip and peer_port
           matched to the input */
     } else {
-      printf("[update_connection] foud a map (outbound)\n");
       /* internal -> external*/
       curr->state = determine_state(curr, tcp_header);
       curr->last_updated = time(NULL);
