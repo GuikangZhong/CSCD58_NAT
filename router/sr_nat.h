@@ -43,10 +43,6 @@ struct sr_nat_connection {
   sr_tcp_state_type state;
   uint32_t peer_ip;
   uint16_t peer_port;
-  uint32_t self_seq_num; /* sequence number */
-  uint32_t peer_seq_num; /* sequence number */
-  uint32_t self_ack_num;
-  uint32_t peer_ack_num;
   time_t last_updated; /* use to timeout connections */
   struct sr_nat_connection *next;
 };

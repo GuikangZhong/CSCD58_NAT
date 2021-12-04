@@ -269,11 +269,7 @@ struct sr_nat_connection *sr_nat_insert_connection(struct sr_nat *nat, uint16_t 
 
   new_entry = (struct sr_nat_connection *)calloc(1, sizeof(struct sr_nat_connection));
   new_entry->peer_ip = ip_header->ip_dst;
-  new_entry->self_seq_num = tcp_header->seq_num;
-  new_entry->self_ack_num = tcp_header->ack_num;
   new_entry->peer_port = tcp_header->dst_port;
-  new_entry->peer_seq_num = 0;
-  new_entry->peer_ack_num = 0;
   new_entry->state = state;
   new_entry->last_updated = time(NULL);
 
@@ -298,7 +294,7 @@ struct sr_nat_connection *sr_nat_insert_connection(struct sr_nat *nat, uint16_t 
 }
 
 struct sr_nat_connection *sr_nat_update_connection(struct sr_nat *nat, struct sr_nat_mapping *mapping, uint8_t *ip_packet, int direction) {
-
+  /* 1: external -> internal ; ow */
   pthread_mutex_lock(&(nat->lock));
 
   struct sr_nat_connection *curr = mapping->conns;
@@ -309,19 +305,31 @@ struct sr_nat_connection *sr_nat_update_connection(struct sr_nat *nat, struct sr
   sr_tcp_hdr_t *tcp_header = (sr_tcp_hdr_t *)(ip_packet + ip_header_len);
 
   while (curr) {
-
-    /* external -> internal */
-    if (direction == 1) {
-
-      /* if external to internal, find the connection with peer_ip and peer_port
-          matched to the input */
+    if (direction == 1 && curr->peer_ip == ntohl(ip_header->ip_src) && curr->peer_port == ntohs(tcp_header->src_port)) {
+      break;
+    } 
+    else if (direction == 0 && curr->peer_ip == ntohl(ip_header->ip_dst) && curr->peer_port == ntohs(tcp_header->dst_port)) {
+      break;
     }
     curr = curr->next;
   }
 
   if (curr) {
+    /* external -> internal */
+    if (direction == 1) {
+      curr->state = determine_state(curr, tcp_header);
+      curr->last_updated = time(NULL);
+      /* if external to internal, find the connection with peer_ip and peer_port
+          matched to the input */
+    } else {
+      /* internal -> external*/
+      curr->state = determine_state(curr, tcp_header);
+      curr->last_updated = time(NULL);
+    }
     copy = (struct sr_nat_connection *)malloc(sizeof(struct sr_nat_connection));
     memcpy(copy, curr, sizeof(struct sr_nat_connection));
+  } else {
+    /* if not found*/
   }
   
   pthread_mutex_unlock(&(nat->lock));
@@ -348,6 +356,9 @@ int determine_state(struct sr_nat_connection *conn, sr_tcp_hdr_t *buf) {
     return CLOSING;
   }
   else if (conn->state == CLOSING && buf->ACK == 1) {
+    return CLOSED;
+  }
+  else if (conn->state == FIN_WAIT_1 && buf->FIN == 1 && buf->ACK == 1) {
     return CLOSED;
   }
   else if (conn->state == FIN_WAIT_1 && buf->ACK == 1){
