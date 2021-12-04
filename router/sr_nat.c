@@ -109,13 +109,12 @@ void *sr_nat_timeout(void *sr_ptr) {  /* Periodic Timout handling */
         struct sr_nat_connection *cur_conn = curr->conns;
         
         while (cur_conn != NULL) {
-          if (cur_conn->state == ESTAB) {
-            
-            if (difftime(curtime,cur_conn->last_updated) > DEFAULT_TCP_ESTABLISHED_TO) {
+          sleep(6.0);
+          if (cur_conn->state == ESTAB && difftime(curtime,cur_conn->last_updated) > 5) {
               pre_conn->next = cur_conn->next;
               free(cur_conn);
               cur_conn = pre_conn->next;
-            }
+
             
             /* if (cur_conn->state == SYN_SENT && difftime(curtime,cur_conn->last_updated) > DEFAULT_TCP_SYN_TO) {
               sr_rt_t *lpm = sr_rt_lookup(sr->routing_table, htonl(cur_conn->peer_ip));
