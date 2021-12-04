@@ -655,7 +655,7 @@ int  sr_arp_req_not_for_us(struct sr_instance* sr,
 
     assert(iface);
 
-    e_hdr = (struct sr_ethernet_packet*)packet;
+    e_hdr = (struct sr_ethernet_hdr*)packet;
     a_hdr = (struct sr_arp_packet*)(packet + sizeof(struct sr_ethernet_hdr));
 
     if ( (e_hdr->ether_type == htons(ethertype_arp)) &&

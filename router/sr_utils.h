@@ -42,8 +42,11 @@ void print_hdr_eth(uint8_t *buf);
 void print_hdr_ip(uint8_t *buf);
 void print_hdr_icmp(uint8_t *buf);
 void print_hdr_arp(uint8_t *buf);
+void print_hdr_tcp(uint8_t *buf);
 
 /* prints all headers, starting from eth */
 void print_hdrs(uint8_t *buf, uint32_t length);
+
+void print_sr_mapping(struct sr_nat_mapping *mapping);
 
 #endif /* -- SR_UTILS_H -- */

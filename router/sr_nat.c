@@ -6,11 +6,20 @@
 #include <time.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
+#include "sr_utils.h"
+#include "sr_protocol.h"
+#include "sr_router.h"
+#include "sr_rt.h"
 
-int sr_nat_init(struct sr_nat *nat) { /* Initializes the nat */
+int find_next_id(struct sr_nat *nat);
 
-  assert(nat);
+int sr_nat_init(struct sr_instance *sr, unsigned int icmp_query_to, unsigned int tcp_estab_idle_to, unsigned int tcp_transitory_to) { /* Initializes the nat */
 
+  assert(sr);
+  assert(&(sr->nat));
+
+  struct sr_nat *nat = &(sr->nat);
   /* Acquire mutex lock */
   pthread_mutexattr_init(&(nat->attr));
   pthread_mutexattr_settype(&(nat->attr), PTHREAD_MUTEX_RECURSIVE);
@@ -22,13 +31,19 @@ int sr_nat_init(struct sr_nat *nat) { /* Initializes the nat */
   pthread_attr_setdetachstate(&(nat->thread_attr), PTHREAD_CREATE_JOINABLE);
   pthread_attr_setscope(&(nat->thread_attr), PTHREAD_SCOPE_SYSTEM);
   pthread_attr_setscope(&(nat->thread_attr), PTHREAD_SCOPE_SYSTEM);
-  pthread_create(&(nat->thread), &(nat->thread_attr), sr_nat_timeout, nat);
+  pthread_create(&(nat->thread), &(nat->thread_attr), sr_nat_timeout, sr);
 
   /* CAREFUL MODIFYING CODE ABOVE THIS LINE! */
 
   nat->mappings = NULL;
   /* Initialize any variables here */
-  nat->ext_id = DEFAULT_ID;
+  nat->icmp_query_to = icmp_query_to;
+  nat->tcp_estab_idle_to = tcp_estab_idle_to;
+  nat->tcp_transitory_to = tcp_transitory_to;
+
+  int i = 0;
+  for ( i = 0; i < TOTAL_PORTS/32; i++ )
+    nat->bitmap[i] = 0;
 
   return success;
 }
@@ -39,6 +54,13 @@ int sr_nat_destroy(struct sr_nat *nat) {  /* Destroys the nat (free memory) */
   pthread_mutex_lock(&(nat->lock));
 
   /* free nat memory here */
+  struct sr_nat_mapping *curr = nat->mappings;
+  struct sr_nat_mapping *temp;
+  while (curr != NULL) {
+    temp = curr;
+    curr = curr->next;
+    free(temp);
+  }
 
   pthread_kill(nat->thread, SIGKILL);
   return pthread_mutex_destroy(&(nat->lock)) &&
@@ -46,28 +68,63 @@ int sr_nat_destroy(struct sr_nat *nat) {  /* Destroys the nat (free memory) */
 
 }
 
-void *sr_nat_timeout(void *nat_ptr) {  /* Periodic Timout handling */
-  struct sr_nat *nat = (struct sr_nat *)nat_ptr;
+void *sr_nat_timeout(void *sr_ptr) {  /* Periodic Timout handling */
+  struct sr_instance *sr = sr_ptr;
+  struct sr_nat *nat = &(sr->nat);
   while (1) {
     sleep(1.0);
     pthread_mutex_lock(&(nat->lock));
 
     time_t curtime = time(NULL);
-
+    
     /* handle periodic tasks here */
     struct sr_nat_mapping *dummy_head = (struct sr_nat_mapping *)calloc(1, sizeof(struct sr_nat_mapping));
     dummy_head->next = nat->mappings;
     struct sr_nat_mapping *prev = dummy_head;
     struct sr_nat_mapping *curr = nat->mappings;
 
-    while (curr) {
-      if (difftime(curtime, curr->last_updated)>NAT_MAPPING_TO) {
+    while (curr != NULL) {
+      /* icmp timeout case */
+      if (curr->type == nat_mapping_icmp && difftime(curtime, curr->last_updated) > nat->icmp_query_to) {
         prev->next = curr->next;
+        printf("[NAT]: ICMP query timeout, clean mapping of id %d\n", curr->aux_ext);
+        ClearBit(nat->bitmap, curr->aux_ext);
+        free(curr);
+        curr = prev->next;
+      }
+      /* tcp connection timeout case */
+      else if (curr->type == nat_mapping_tcp) {
+        struct sr_nat_connection *dummy_conn = (struct sr_nat_connection *)calloc(1, sizeof(struct sr_nat_connection));
+        dummy_conn->next = curr->conns;
+        struct sr_nat_connection *pre_conn = dummy_conn;
+        struct sr_nat_connection *cur_conn = curr->conns;
+        while (cur_conn != NULL) {
+          if (cur_conn->state == SYN_SENT && difftime(curtime,cur_conn->last_updated) > 200) {
+            
+            sr_rt_t *lpm = sr_rt_lookup(sr->routing_table, htonl(cur_conn->peer_ip));
+            sr_send_icmp(sr, cur_conn->ip_packet, lpm->interface, icmp_type_dstunreachable, 3);
+
+            pre_conn->next = cur_conn->next;
+            free(cur_conn);
+            cur_conn = pre_conn->next;
+          }
+          else {
+            pre_conn = cur_conn;
+            cur_conn = cur_conn->next;
+          }
+        }
+        curr->conns = dummy_conn->next;
+        free(dummy_conn);
+        prev = curr;
         curr = curr->next;
-      } 
-      prev = curr;
-      curr = curr->next;
+      }
+      else {
+        prev = curr;
+        curr = curr->next;      
+      }
+
     }
+    nat->mappings = dummy_head->next;
     free(dummy_head);
     pthread_mutex_unlock(&(nat->lock));
   }
@@ -78,6 +135,7 @@ void *sr_nat_timeout(void *nat_ptr) {  /* Periodic Timout handling */
    You must free the returned structure if it is not NULL. */
 struct sr_nat_mapping *sr_nat_lookup_external(struct sr_nat *nat,
     uint16_t aux_ext, sr_nat_mapping_type type ) {
+  
 
   pthread_mutex_lock(&(nat->lock));
 
@@ -90,11 +148,13 @@ struct sr_nat_mapping *sr_nat_lookup_external(struct sr_nat *nat,
     }
     curr = curr->next;
   }
+  
 
   if (curr) {
     copy = (struct sr_nat_mapping *) malloc(sizeof(struct sr_nat_mapping)); 
     memcpy(copy, curr, sizeof(struct sr_nat_mapping));
   }
+  
 
   pthread_mutex_unlock(&(nat->lock));
   return copy;
@@ -136,22 +196,98 @@ struct sr_nat_mapping *sr_nat_insert_mapping(struct sr_nat *nat,
 
   /* handle insert here, create a mapping, and then return a copy of it */
   
-  struct sr_nat_mapping *temp;
+  struct sr_nat_mapping *new_entry;
 
-  temp = (struct sr_nat_mapping *)calloc(1, sizeof(struct sr_nat_mapping));
-  temp->ip_int = ip_int;
-  temp->type = type;
-  temp->aux_int = aux_int;
-  temp->aux_ext = nat->ext_id;
-  nat->ext_id++;
-  temp->last_updated = time(NULL);
-
-  temp->next = nat->mappings;
-  nat->mappings = temp;
+  new_entry = (struct sr_nat_mapping *)calloc(1, sizeof(struct sr_nat_mapping));
+  new_entry->ip_int = ip_int;
+  new_entry->type = type;
+  new_entry->aux_int = aux_int;
+  new_entry->aux_ext = find_next_id(nat);
+  new_entry->last_updated = time(NULL);
+  new_entry->next = nat->mappings;
+  nat->mappings = new_entry;
 
   struct sr_nat_mapping *mapping = (struct sr_nat_mapping *) malloc(sizeof(struct sr_nat_mapping)); 
-  memcpy(mapping, temp, sizeof(struct sr_nat_mapping));
+  memcpy(mapping, new_entry, sizeof(struct sr_nat_mapping));
 
   pthread_mutex_unlock(&(nat->lock));
   return mapping;
+}
+
+int find_next_id(struct sr_nat *nat) {
+  /* loop through the bitmap */
+  int i;
+  for (i=DEFAULT_ID/32; i < TOTAL_PORTS/32; i++) {
+    int num = nat->bitmap[i];
+    int j;
+    for ( j = 0; j < 32; j++) {
+      if (!(num & 0x01)) {
+          int res = (i * 32) + j;
+          nat->bitmap[i] |= (1 << (res % 32));
+          return res;
+      }
+      num = num >> 1;
+    }
+  }
+  return -1;
+}
+
+struct sr_nat_connection *sr_nat_insert_connection(struct sr_nat *nat, uint8_t *ip_packet, uint16_t ext_port, 
+  uint32_t peer_ip, uint16_t peer_port, uint32_t peer_seq_num) {
+
+  pthread_mutex_lock(&(nat->lock));
+
+  struct sr_nat_connection *copy = NULL;
+  struct sr_nat_connection *new_entry;
+
+  new_entry = (struct sr_nat_connection *)calloc(1, sizeof(struct sr_nat_connection));
+  new_entry->ip_packet = ip_packet;
+  new_entry->peer_ip = peer_ip;
+  new_entry->peer_port = peer_port;
+  new_entry->peer_seq_num = peer_seq_num;
+  new_entry->state = SYN_SENT;
+  new_entry->last_updated = time(NULL);
+
+  /* find the corresponding ext_port */
+  struct sr_nat_mapping *curr = nat->mappings;
+  while (curr) {
+    if (curr->aux_ext == ext_port) {
+      break;
+    }
+    curr = curr->next;
+  }
+
+  if (curr) {
+    new_entry->next = curr->conns;
+    curr->conns = new_entry;
+    struct sr_nat_connection *copy = (struct sr_nat_connection *) malloc(sizeof(struct sr_nat_connection)); 
+    memcpy(copy, new_entry, sizeof(struct sr_nat_connection));
+  }
+  
+  pthread_mutex_unlock(&(nat->lock));
+  return copy;
+}
+
+struct sr_nat_connection *sr_nat_lookup_connection(struct sr_nat *nat, struct sr_nat_mapping *mapping, 
+  uint32_t peer_ip, uint16_t peer_port, uint32_t peer_seq_num) {
+
+  pthread_mutex_lock(&(nat->lock));
+
+  struct sr_nat_connection *curr = mapping->conns;
+  struct sr_nat_connection *copy = NULL;
+  while (curr) {
+    if (curr->peer_ip == peer_ip && curr->peer_seq_num == peer_seq_num 
+      && curr->peer_port == peer_port) {
+      break;
+    }
+    curr = curr->next;
+  }
+
+  if (curr) {
+    copy = (struct sr_nat_connection *)malloc(sizeof(struct sr_nat_connection));
+    memcpy(copy, curr, sizeof(struct sr_nat_connection));
+  }
+  
+  pthread_mutex_unlock(&(nat->lock));
+  return copy;
 }

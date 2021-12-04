@@ -2,9 +2,9 @@
 #include <stdio.h>
 #include <string.h>
 #include "sr_protocol.h"
-#include "sr_utils.h"
+#include "sr_nat.h"
 
-/* Returns the check some in network byte order */
+/* Returns the check sum in network byte order */
 uint16_t cksum (const void *_data, int len) {
   const uint8_t *data = _data;
   uint32_t sum;
@@ -33,6 +33,16 @@ int is_private_ip(uint32_t ip) {
   /* Class C: 192.168. 0.0 — 192.168. 255.255 */
   if ((ip & 0xffff0000) == 0xc0a80000) {
     return 1;
+  }
+  return 0;
+}
+
+int determine_state(sr_tcp_hdr_t *buf) {
+  if (buf->SYN == 1 && buf->ACK == 0) {
+    return SYN_SENT;
+  }
+  else if (buf->SYN == 1 && buf->ACK == 1) {
+    return SYN_RCVD;
   }
   return 0;
 }
@@ -114,6 +124,27 @@ void print_hdr_ip(uint8_t *buf) {
   print_addr_ip_int(ntohl(iphdr->ip_dst));
 }
 
+/* Prints out TCP header fields */
+void print_hdr_tcp(uint8_t *buf) {
+  sr_tcp_hdr_t *tcp_hdr = (sr_tcp_hdr_t *)(buf);
+  fprintf(stderr, "TCP header:\n");
+  fprintf(stderr, "\tsource port: %d\n", ntohs(tcp_hdr->src_port));
+  fprintf(stderr, "\tdestination port: %d\n", ntohs(tcp_hdr->dst_port));
+  fprintf(stderr, "\tsequence number: %u\n", ntohl(tcp_hdr->seq_num));
+  fprintf(stderr, "\tacknowledment number: %u\n", ntohl(tcp_hdr->ack_num));
+  fprintf(stderr, "\tdata offset: %d\n", tcp_hdr->data_offset);
+  fprintf(stderr, "\tecn: %d\n", tcp_hdr->ecn);
+  fprintf(stderr, "\tURG: %d\n", tcp_hdr->URG);
+  fprintf(stderr, "\tACK: %d\n", tcp_hdr->ACK);
+  fprintf(stderr, "\tPSH: %d\n", tcp_hdr->PSH);
+  fprintf(stderr, "\tRST: %d\n", tcp_hdr->RST);
+  fprintf(stderr, "\tSYN: %d\n", tcp_hdr->SYN);
+  fprintf(stderr, "\tFIN: %d\n", tcp_hdr->FIN);
+  fprintf(stderr, "\twindow: %d\n", ntohs(tcp_hdr->window));
+  fprintf(stderr, "\tchecksum: %d\n", tcp_hdr->checksum);
+  fprintf(stderr, "\turgent_pointer: %d\n", tcp_hdr->urgent_pointer);
+}
+
 /* Prints out ICMP header fields */
 void print_hdr_icmp(uint8_t *buf) {
   sr_icmp_hdr_t *icmp_hdr = (sr_icmp_hdr_t *)(buf);
@@ -146,4 +177,15 @@ void print_hdr_arp(uint8_t *buf) {
   print_addr_eth(arp_hdr->ar_tha);
   fprintf(stderr, "\ttarget ip address: ");
   print_addr_ip_int(ntohl(arp_hdr->ar_tip));
+}
+
+void print_sr_mapping(struct sr_nat_mapping *mapping) {
+  fprintf(stderr, "\nIP_INT       aux_int       aux_ext          type\n");
+  fprintf(stderr, "-----------------------------------------------------------\n");
+
+  struct sr_nat_mapping *curr = mapping;
+  while (curr) {
+    printf("%.8x       %d          %d            %d\n", curr->ip_int, curr->aux_int, curr->aux_ext, curr->type);
+    curr = curr->next;
+  }
 }

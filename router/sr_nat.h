@@ -7,7 +7,14 @@
 #include <pthread.h>
 
 #define DEFAULT_ID 1024
-#define NAT_MAPPING_TO 60
+#define DEFAULT_ICMP_QUERY_TO 60
+#define DEFAULT_TCP_ESTABLISHED_TO 7440
+#define DEFAULT_TCP_TRANSITORY_TO 300
+#define TOTAL_PORTS 65536
+
+#define ClearBit(A,k)   ( A[(k/32)] &= ~(1 << (k%32)) ) /* Reference website: http://www.mathcs.emory.edu/~cheung/Courses/255/Syllabus/1-C-intro/bit-array.html */
+
+struct sr_instance;
 
 typedef enum {
   nat_mapping_icmp,
@@ -15,9 +22,29 @@ typedef enum {
   /* nat_mapping_udp, */
 } sr_nat_mapping_type;
 
+typedef enum {
+  CLOSED,
+  LISTEN,
+  SYN_SENT,
+  SYN_RCVD,
+  ESTAB,
+  FIN_WAIT_1,
+  FIN_WAIT_2,
+  CLOSING,
+  TIME_WAIT,
+  CLOST_WAIT,
+  LAST_ACK
+} sr_tcp_state_type;
+
 struct sr_nat_connection {
   /* add TCP connection state data members here */
-
+  sr_tcp_state_type state;
+  uint8_t *ip_packet;
+  uint32_t peer_ip;
+  uint16_t peer_port;
+  uint32_t self_seq_num; /* sequence number */
+  uint32_t peer_seq_num; /* sequence number */
+  time_t last_updated; /* use to timeout connections */
   struct sr_nat_connection *next;
 };
 
@@ -35,9 +62,10 @@ struct sr_nat_mapping {
 struct sr_nat {
   /* add any fields here */
   struct sr_nat_mapping *mappings;
-
-  /* use for external port or icmp id */
-  int ext_id;
+  unsigned int icmp_query_to; /* icmp query timeout */
+  unsigned int tcp_estab_idle_to; /* tcp established timeout */
+  unsigned int tcp_transitory_to; /* tcp transitory timeout */
+  int bitmap[TOTAL_PORTS / 32]; /* bit map to check if a ext id is in use */
 
   /* threading */
   pthread_mutex_t lock;
@@ -47,9 +75,9 @@ struct sr_nat {
 };
 
 
-int   sr_nat_init(struct sr_nat *nat);     /* Initializes the nat */
+int   sr_nat_init(struct sr_instance *sr, unsigned int icmp_query_to, unsigned int tcp_estab_idle_to, unsigned int tcp_transitory_to);     /* Initializes the nat */
 int   sr_nat_destroy(struct sr_nat *nat);  /* Destroys the nat (free memory) */
-void *sr_nat_timeout(void *nat_ptr);  /* Periodic Timout */
+void *sr_nat_timeout(void *sr_ptr);  /* Periodic Timout */
 
 /* Get the mapping associated with given external port.
    You must free the returned structure if it is not NULL. */
@@ -65,6 +93,12 @@ struct sr_nat_mapping *sr_nat_lookup_internal(struct sr_nat *nat,
    You must free the returned structure if it is not NULL. */
 struct sr_nat_mapping *sr_nat_insert_mapping(struct sr_nat *nat,
   uint32_t ip_int, uint16_t aux_int, sr_nat_mapping_type type );
+
+struct sr_nat_connection *sr_nat_lookup_connection(struct sr_nat *nat, struct sr_nat_mapping *mapping, 
+  uint32_t peer_ip, uint16_t peer_port, uint32_t peer_seq_num);
+
+struct sr_nat_connection *sr_nat_insert_connection(struct sr_nat *nat, uint8_t *ip_packet, uint16_t ext_port, 
+  uint32_t peer_ip, uint16_t peer_port, uint32_t peer_seq_num);
 
 
 #endif
