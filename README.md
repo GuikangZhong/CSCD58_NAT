@@ -12,7 +12,7 @@ Network Address Translation (NAT) is a technique that solves the shortage of IPv
 
 ## Implementation details and Documentation
 
-# Topology Change
+### Topology Change
 
 ## Contributions from each member of the team
 Guikang Zhong:<br>
