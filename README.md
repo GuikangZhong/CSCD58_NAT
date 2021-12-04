@@ -35,3 +35,17 @@ Jingwei Wang:<br>
 ## Documentation for function implementing the required and missed functionalities in the starter code
 
 ## List of tests cases run and results
+### ICMP Echo Request/Reply
+1. Pinging from the internal hosts to any external hosts.
+```console
+mininet> client1 ping -c3 server1
+PING 172.64.3.21 (172.64.3.21) 56(84) bytes of data.
+64 bytes from 172.64.3.21: icmp_seq=1 ttl=63 time=500 ms
+64 bytes from 172.64.3.21: icmp_seq=2 ttl=63 time=21.9 ms
+64 bytes from 172.64.3.21: icmp_seq=3 ttl=63 time=90.7 ms
+
+--- 172.64.3.21 ping statistics ---
+3 packets transmitted, 3 received, 0% packet loss, time 2003ms
+rtt min/avg/max/mdev = 21.926/204.334/500.355/211.193 ms
+```
+Packets caught in Wireshark <br>
