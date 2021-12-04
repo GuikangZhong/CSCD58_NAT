@@ -187,8 +187,8 @@ rtt min/avg/max/mdev = 21.926/204.334/500.355/211.193 ms
 ```
 In Wireshark <br>
 ![alt text](/images/ICMP_echo_request_eth1.PNG "ICMP_echo_request_eth1") <br>
-<b>Fig.1 - ICMP_echo_request_eth1</b>
+<div align="center"><b>Fig.1 - ICMP_echo_request_eth1</b></div>
 
 ![alt text](/images/ICMP_echo_request_eth2.PNG "ICMP_echo_request_eth2") <br>
-<b>Fig.2 - ICMP_echo_request_eth2</b>
+<div align="center"> <b>Fig.2 - ICMP_echo_request_eth2</b> <br></div>
 As you can see the red cirles in these two screenshots, after the ICMP request packet goes from eth1 to eth2, the IP address of client 1 has changed to the IP address of the router eth5. And the identifier has been changed from 3337 to 1024 (As 0-1023 are reserverd).
