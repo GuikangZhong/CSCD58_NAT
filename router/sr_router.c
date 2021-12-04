@@ -400,7 +400,7 @@ void sr_handle_ippacket(struct sr_instance* sr,
     }
     else if (sr->nat_enabled && protocol == ip_protocol_tcp) {
       int success = handle_nat_tcp(sr, packet, len, 0);
-      if (!success) {
+      if (success==0 || success == -1) {
         return;
       }
     }
@@ -446,6 +446,8 @@ int handle_nat_tcp(struct sr_instance* sr, uint8_t *ip_packet, unsigned int ip_p
       conn = sr_nat_update_connection(&sr->nat, mapping, (uint8_t *)ip_packet, 0);
       if (!conn) {
         printf("updating connection fail, connection not found\n");
+        /* drop the packet */
+        return -1;
       }
       printf("[state]:\n");
       print_state(conn->state);
@@ -473,7 +475,7 @@ int handle_nat_tcp(struct sr_instance* sr, uint8_t *ip_packet, unsigned int ip_p
         
         /* if it is duplicated SYN packet, drop it */
         if (conn) {
-          return -1;
+          return 0;
         } 
         /* else, insert this SYN packet into the connection list
         else {
@@ -496,6 +498,7 @@ int handle_nat_tcp(struct sr_instance* sr, uint8_t *ip_packet, unsigned int ip_p
         conn = sr_nat_update_connection(&sr->nat, mapping, (uint8_t *)ip_packet, 1);
         if (!conn) {
           printf("updating connection fail, connection not found\n");
+          return -1;
         }
         printf("[state]:\n");
         print_state(conn->state);

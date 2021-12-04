@@ -109,8 +109,7 @@ void *sr_nat_timeout(void *sr_ptr) {  /* Periodic Timout handling */
         struct sr_nat_connection *cur_conn = curr->conns;
         
         while (cur_conn != NULL) {
-          sleep(6.0);
-          if (cur_conn->state == ESTAB && difftime(curtime,cur_conn->last_updated) > 5) {
+          if (cur_conn->state == ESTAB && difftime(curtime,cur_conn->last_updated) > 0.01) {
               pre_conn->next = cur_conn->next;
               free(cur_conn);
               cur_conn = pre_conn->next;
