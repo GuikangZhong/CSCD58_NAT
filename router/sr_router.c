@@ -374,6 +374,7 @@ void sr_handle_ippacket(struct sr_instance* sr,
       if (sr->nat_enabled && protocol == ip_protocol_tcp && (code == 1)) {
         printf("[NAT]: translated public ip to privite ip for TCP\n");
         sr_forward_ippacket(sr, (sr_ip_hdr_t*) packet, len, interface);
+        printf("TCP packet to router was forwarded!\n");
       }
       /* Send ICMP port unreacheable for traceroute
        * in case of udp or tcp protocol*/
@@ -404,6 +405,7 @@ void sr_handle_ippacket(struct sr_instance* sr,
 
     /* Destined somewhere else so we forward packet!*/
     sr_forward_ippacket(sr, (sr_ip_hdr_t*) packet, len, interface);
+    printf("Packet to somewhere else was forwarded!\n");
   }
   return;
 } /* end sr_handle_ippacket */
