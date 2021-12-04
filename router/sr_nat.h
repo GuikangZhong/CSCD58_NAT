@@ -45,6 +45,8 @@ struct sr_nat_connection {
   uint16_t peer_port;
   uint32_t self_seq_num; /* sequence number */
   uint32_t peer_seq_num; /* sequence number */
+  uint32_t self_ack_num;
+  uint32_t peer_ack_num;
   time_t last_updated; /* use to timeout connections */
   struct sr_nat_connection *next;
 };
@@ -95,11 +97,9 @@ struct sr_nat_mapping *sr_nat_lookup_internal(struct sr_nat *nat,
 struct sr_nat_mapping *sr_nat_insert_mapping(struct sr_nat *nat,
   uint32_t ip_int, uint16_t aux_int, sr_nat_mapping_type type );
 
-struct sr_nat_connection *sr_nat_lookup_connection(struct sr_nat *nat, struct sr_nat_mapping *mapping, 
-  uint32_t peer_ip, uint16_t peer_port, uint32_t peer_seq_num);
+struct sr_nat_connection *sr_nat_update_connection(struct sr_nat *nat, struct sr_nat_mapping *mapping, uint8_t *ip_packet, int direction);
 
-struct sr_nat_connection *sr_nat_insert_connection(struct sr_nat *nat, uint16_t ext_port, 
-  uint32_t peer_ip, uint16_t peer_port, uint32_t peer_seq_num, unsigned int state);
+struct sr_nat_connection *sr_nat_insert_connection(struct sr_nat *nat, uint16_t ext_port, uint8_t *ip_buf, unsigned int state);
 
 int determine_state(struct sr_nat_connection *conn, sr_tcp_hdr_t *buf);
 

@@ -432,8 +432,7 @@ int handle_nat_tcp(struct sr_instance* sr, uint8_t *ip_packet, unsigned int ip_p
       mapping = sr_nat_insert_mapping(&sr->nat, ntohl(ip_header->ip_src), ntohs(tcp_header->src_port), nat_mapping_tcp);
       
       /* insert the connection */
-      sr_nat_insert_connection(&(sr->nat), ntohs(tcp_header->dst_port), ntohl(ip_header->ip_src), 
-        ntohs(tcp_header->src_port), ntohl(tcp_header->seq_num), SYN_SENT);
+      sr_nat_insert_connection(&(sr->nat), ntohs(tcp_header->dst_port), (uint8_t *)ip_header, SYN_SENT);
     } 
 
     /* mapping is valid -> translate src ip to public ip*/
@@ -454,8 +453,7 @@ int handle_nat_tcp(struct sr_instance* sr, uint8_t *ip_packet, unsigned int ip_p
       /* if mapping is valid, check its list of connections*/
       mapping = sr_nat_lookup_external(&sr->nat, ntohs(tcp_header->dst_port), nat_mapping_tcp);
       if (mapping) {
-        struct sr_nat_connection *conn = sr_nat_lookup_connection(&sr->nat, mapping, ntohl(ip_header->ip_src), 
-          ntohs(tcp_header->src_port), ntohl(tcp_header->seq_num));
+        struct sr_nat_connection *conn = sr_nat_update_connection(&sr->nat, mapping, (uint8_t *)ip_packet, 1);
         
         /* if it is duplicated SYN packet, drop it */
         if (conn) {
@@ -476,10 +474,9 @@ int handle_nat_tcp(struct sr_instance* sr, uint8_t *ip_packet, unsigned int ip_p
     }
     else {
       mapping = sr_nat_lookup_external(&sr->nat, ntohs(tcp_header->dst_port), nat_mapping_tcp);
-      printf("is mapping NULL: %d\n", mapping == NULL);
       /* if mapping is valid -> translate dst ip to private ip*/
       if (mapping) {
-        printf("found such mapping..............\n");
+        sr_nat_update_connection(&sr->nat, mapping, (uint8_t *)ip_packet, 1);
         tcp_header->dst_port = htons(mapping->aux_int);
         ip_header->ip_dst = htonl(mapping->ip_int);
       }

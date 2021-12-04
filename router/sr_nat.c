@@ -256,18 +256,24 @@ int find_next_id(struct sr_nat *nat) {
   return -1;
 }
 
-struct sr_nat_connection *sr_nat_insert_connection(struct sr_nat *nat, uint16_t ext_port, 
-  uint32_t peer_ip, uint16_t peer_port, uint32_t peer_seq_num, unsigned int state) {
+struct sr_nat_connection *sr_nat_insert_connection(struct sr_nat *nat, uint16_t ext_port, uint8_t *ip_packet, unsigned int state) {
 
   pthread_mutex_lock(&(nat->lock));
 
   struct sr_nat_connection *copy = NULL;
   struct sr_nat_connection *new_entry;
 
+  sr_ip_hdr_t *ip_header = (sr_ip_hdr_t *)(ip_packet);
+  unsigned int ip_header_len = (ip_header->ip_hl)*4;
+  sr_tcp_hdr_t *tcp_header = (sr_tcp_hdr_t *)(ip_packet + ip_header_len);
+
   new_entry = (struct sr_nat_connection *)calloc(1, sizeof(struct sr_nat_connection));
-  new_entry->peer_ip = peer_ip;
-  new_entry->peer_port = peer_port;
-  new_entry->peer_seq_num = peer_seq_num;
+  new_entry->peer_ip = ip_header->ip_dst;
+  new_entry->self_seq_num = tcp_header->seq_num;
+  new_entry->self_ack_num = tcp_header->ack_num;
+  new_entry->peer_port = tcp_header->dst_port;
+  new_entry->peer_seq_num = 0;
+  new_entry->peer_ack_num = 0;
   new_entry->state = state;
   new_entry->last_updated = time(NULL);
 
@@ -291,17 +297,24 @@ struct sr_nat_connection *sr_nat_insert_connection(struct sr_nat *nat, uint16_t 
   return copy;
 }
 
-struct sr_nat_connection *sr_nat_lookup_connection(struct sr_nat *nat, struct sr_nat_mapping *mapping, 
-  uint32_t peer_ip, uint16_t peer_port, uint32_t peer_seq_num) {
+struct sr_nat_connection *sr_nat_update_connection(struct sr_nat *nat, struct sr_nat_mapping *mapping, uint8_t *ip_packet, int direction) {
 
   pthread_mutex_lock(&(nat->lock));
 
   struct sr_nat_connection *curr = mapping->conns;
   struct sr_nat_connection *copy = NULL;
+
+  sr_ip_hdr_t *ip_header = (sr_ip_hdr_t *)(ip_packet);
+  unsigned int ip_header_len = (ip_header->ip_hl)*4;
+  sr_tcp_hdr_t *tcp_header = (sr_tcp_hdr_t *)(ip_packet + ip_header_len);
+
   while (curr) {
-    if (curr->peer_ip == peer_ip && curr->peer_seq_num == peer_seq_num 
-      && curr->peer_port == peer_port) {
-      break;
+
+    /* external -> internal */
+    if (direction == 1) {
+
+      /* if external to internal, find the connection with peer_ip and peer_port
+          matched to the input */
     }
     curr = curr->next;
   }
@@ -319,11 +332,11 @@ int determine_state(struct sr_nat_connection *conn, sr_tcp_hdr_t *buf) {
   if (buf->SYN == 1 && buf->ACK == 0) {
     return SYN_SENT;
   }
-  else if (conn->state == SYN_SENT && buf->SYN == 1) {
-    return SYN_RCVD;
-  }
   else if (conn->state == SYN_SENT && buf->SYN == 1 && buf->ACK == 1) {
     return ESTAB;
+  }
+  else if (conn->state == SYN_SENT && buf->SYN == 1) {
+    return SYN_RCVD;
   }
   else if (conn->state == SYN_RCVD && buf->ACK == 1) {
     return ESTAB;
