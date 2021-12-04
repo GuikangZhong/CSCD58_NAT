@@ -12,7 +12,11 @@ Network Address Translation (NAT) is a technique that solves the shortage of IPv
 
 ## Implementation details and Documentation
 
-### Topology Change
+### Starter Code Changes
+1. We would like to point out a problem of the starter code. Originally, there was a swtich lying in the network topology shown in the NAT handout. Somehow, this switch is broken and we are not able to detect the error location. Therefore, we deleted this problematic switch.<br>
+2. To test whether NAT works for mutiple internal hosts, we added an additional host (client2) into the topology.<br>
+3. To test whether NAT can handle the "simulataneous open" case, we added an external peer (client3) into the topology.<br>
+Please refer to the topology below instead of the one in the NAT handout<br>
 
 ## Contributions from each member of the team
 Guikang Zhong:<br>
