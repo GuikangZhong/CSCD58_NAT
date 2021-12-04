@@ -8,7 +8,11 @@ Jingwei Wang 1003777754 wangj589<br>
 This project is built on Linda Lo's simple router code in Fall 2021.
 
 ## Description of the project
-Network Address Translation (NAT) is a technique that solves the shortage of IPv4 addresses. We built a simple Network Address Translator (NAT) that can handle IP address translation for ICMP and TCP packets. 
+Network Address Translation (NAT) is a technique that solves the shortage of IPv4 addresses. The local router translates the private IP addresses of local hosts into one of the router's public IP address so that the local hosts can communicate with hosts in the external network. In this project, we follow this NAT handout (https://github.com/mininet/mininet/wiki/Network-Address-Translator-%28NAT%29) to build a simple Network Address Translator that can handle IP address translation for ICMP and TCP packets. 
+
+## Implementation details and Documentation
+
+# Topology Change
 
 ## Contributions from each member of the team
 Guikang Zhong:<br>
