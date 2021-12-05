@@ -101,9 +101,8 @@ void *sr_nat_timeout(void *sr_ptr) {
     struct sr_nat_unsol_pkt *curr_unsol = nat->unsol_pkt;
 
     while (curr_unsol != NULL) {
-      printf("[NAT]: 11111111111111111\n");
       sr_ip_hdr_t *ip_header = (sr_ip_hdr_t *)(curr_unsol->ip_packet);
-      sr_rt_t *lpm = sr_rt_lookup(sr->routing_table, htonl(ip_header->ip_src));
+      sr_rt_t *lpm = sr_rt_lookup(sr->routing_table, ip_header->ip_src);
       if (lpm && difftime(curtime, curr_unsol->last_updated) > DEFAULT_TCP_SYN_TO) {
         printf("[NAT]: TCP inbound SYN timeout\n");
         sr_send_icmp(sr, curr_unsol->ip_packet, lpm->interface, icmp_type_dstunreachable, 3);
@@ -116,7 +115,8 @@ void *sr_nat_timeout(void *sr_ptr) {
         curr_unsol = curr_unsol->next;
       }
     }
-
+    nat->unsol_pkt = dummy_unsol_head->next;
+    free(dummy_unsol_head);
 
     struct sr_nat_mapping *dummy_head = (struct sr_nat_mapping *)calloc(1, sizeof(struct sr_nat_mapping));
     dummy_head->next = nat->mappings;
@@ -458,20 +458,23 @@ void sr_nat_insert_unsolicited_packet(struct sr_nat *nat, uint8_t* ip_packet, un
     if (ip_header->ip_src == temp_ip_header->ip_src && ip_header->ip_dst == temp_ip_header->ip_dst && 
       tcp_header->src_port == temp_tcp_header->src_port && tcp_header->dst_port == temp_tcp_header->dst_port &&
       tcp_header->seq_num == temp_tcp_header->seq_num) {
-      return;
+      printf("[NAT]: drop the unsolicited packet\n");
+      break;
     }
     prev = curr;
     curr = curr->next;
   }
-
-  curr = calloc(1, sizeof(struct sr_nat_unsol_pkt));
-  uint8_t *copy = malloc(ip_packet_len);
-  memcpy(copy, ip_packet, ip_packet_len);
-  curr->ip_packet = copy;
-  curr->last_updated = time(NULL);
-  prev->next = curr;
-  nat->unsol_pkt = dummy->next;
-  free(dummy);
+  if (!curr) {
+  
+    curr = calloc(1, sizeof(struct sr_nat_unsol_pkt));
+    uint8_t *copy = malloc(ip_packet_len);
+    memcpy(copy, ip_packet, ip_packet_len);
+    curr->ip_packet = copy;
+    curr->last_updated = time(NULL);
+    prev->next = curr;
+    nat->unsol_pkt = dummy->next;
+    free(dummy);
+  }
   pthread_mutex_unlock(&(nat->lock));
 }
 
