@@ -419,9 +419,7 @@ struct sr_nat_connection *sr_nat_update_connection(struct sr_nat *nat, struct sr
   } else {
     /* if not found, it means the external host initiates this connection first, 
       so buffer this unsolicited inbound SYN */
-    printf("[nat] insert the unsolicited packet\n");
     sr_nat_insert_unsolicited_packet(nat, ip_packet, ip_packet_len);
-
   }
   
   pthread_mutex_unlock(&(nat->lock));
@@ -435,13 +433,45 @@ struct sr_nat_connection *sr_nat_update_connection(struct sr_nat *nat, struct sr
  * Insert the unsolicited SYN packet into sr_nat_mapping
  *---------------------------------------------------------------------*/
 void sr_nat_insert_unsolicited_packet(struct sr_nat *nat, uint8_t* ip_packet, unsigned int ip_packet_len) {
+  
   pthread_mutex_lock(&(nat->lock));
-  printf("check\n");
-  struct sr_nat_unsol_pkt *new_entry = calloc(1, sizeof(struct sr_nat_unsol_pkt));
-  uint8_t *copy = malloc(sizeof(ip_packet_len));
-  new_entry->ip_packet = copy;
-  new_entry->next = nat->unsol_pkt;
-  nat->unsol_pkt = new_entry;
+  
+  printf("[NAT]: insert the unsolicited packet\n");
+  struct sr_nat_unsol_pkt *dummy = calloc(1, sizeof(struct sr_nat_unsol_pkt));
+  struct sr_nat_unsol_pkt *prev = dummy;
+  struct sr_nat_unsol_pkt *curr = nat->unsol_pkt;
+  dummy->next = nat->unsol_pkt;
+  
+
+  /*sr_ip_hdr_t *ip_header = (sr_ip_hdr_t *)(ip_packet);
+  unsigned int ip_header_len = (ip_header->ip_hl)*4;
+  sr_tcp_hdr_t *tcp_header = (sr_tcp_hdr_t *)(ip_packet + ip_header_len);
+
+  sr_ip_hdr_t *temp_ip_header;
+  unsigned int temp_ip_header_len;
+  sr_tcp_hdr_t *temp_tcp_header;*/
+  uint8_t *temp_pkt;
+  
+  while (curr) {
+    /*
+    temp_pkt = curr->ip_packet;
+    temp_ip_header = (sr_ip_hdr_t *)(temp_pkt);
+    temp_ip_header_len = (ip_header->ip_hl)*4;
+    temp_tcp_header = (sr_tcp_hdr_t *)(temp_pkt + ip_header_len);*/
+    if (memcmp(ip_packet, curr->ip_packet, ip_packet_len) == 0) {
+      return;
+    }
+    prev = curr;
+    curr = curr->next;
+  }
+
+  curr = calloc(1, sizeof(struct sr_nat_unsol_pkt));
+  uint8_t *copy = malloc(ip_packet_len);
+  memcpy(copy, ip_packet, ip_packet_len);
+  curr->ip_packet = copy;
+  prev->next = curr;
+  nat->unsol_pkt = dummy->next;
+  free(dummy);
   pthread_mutex_unlock(&(nat->lock));
 }
 
