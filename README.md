@@ -233,3 +233,6 @@ In Wireshark <br>
 ![alt text](/images/client2_tcp_conn_eth3.PNG "client2_tcp_conn_eth3") <br>
 <div align="center"> <b>Fig.6 - client2's TCP connection to server2 at eth3</b></div> <br>
 As you can see, client 2 uses its IP address 10.0.1.101 and port number 49478 to send TCP packets. In the perspective of server2, these incoming packets are from IP 172.64.3.2, Port 1024. Same thing happens when server2 sends responses back to client2, the destination IP and port are changed after NAT processes them. This means our NAT successfully rewrites TCP packets from internal hosts to external hosts, and vice versa. <br><br>
+
+### Mappings
+3. We use a mapping which has four columns: Internal IP address, internal identifier (identifier for ICMP, port for TCP), external identifier, and mapping type.
