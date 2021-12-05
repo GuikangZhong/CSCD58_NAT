@@ -38,6 +38,12 @@ typedef enum {
   LAST_ACK
 } sr_tcp_state_type;
 
+struct sr_nat_unsol_pkt {
+  uint8_t *ip_packet;
+  time_t last_updated;
+  struct sr_nat_unsol_pkt *next;
+};
+
 struct sr_nat_connection {
   /* add TCP connection state data members here */
   sr_tcp_state_type state;
@@ -65,6 +71,7 @@ struct sr_nat {
   unsigned int tcp_estab_idle_to; /* tcp established timeout */
   unsigned int tcp_transitory_to; /* tcp transitory timeout */
   int bitmap[TOTAL_PORTS / 32]; /* bit map to check if a ext id is in use */
+  struct sr_nat_unsol_pkt *unsol_pkt; /* unsolicited packets */
 
   /* threading */
   pthread_mutex_t lock;
@@ -93,10 +100,12 @@ struct sr_nat_mapping *sr_nat_lookup_internal(struct sr_nat *nat,
 struct sr_nat_mapping *sr_nat_insert_mapping(struct sr_nat *nat,
   uint32_t ip_int, uint16_t aux_int, sr_nat_mapping_type type );
 
-struct sr_nat_connection *sr_nat_update_connection(struct sr_nat *nat, struct sr_nat_mapping *mapping, uint8_t *ip_packet, int direction);
+struct sr_nat_connection *sr_nat_update_connection(struct sr_nat *nat, struct sr_nat_mapping *mapping, uint8_t *ip_packet, unsigned int ip_packet_len, int direction);
 
 struct sr_nat_connection *sr_nat_insert_connection(struct sr_nat *nat, uint16_t ext_port, uint8_t *ip_buf, unsigned int state);
 
-sr_tcp_state_type _determine_state(struct sr_nat_connection *conn, sr_tcp_hdr_t *buf);
+void sr_nat_insert_unsolicited_packet(struct sr_nat *nat, uint8_t* ip_packet, unsigned int ip_packet_len);
+
+void sr_nat_remove_unsolicited_packet(struct sr_nat *nat, uint8_t* ip_packet);
 
 #endif
