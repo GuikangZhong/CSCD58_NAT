@@ -331,16 +331,6 @@ struct sr_nat_connection *sr_nat_insert_connection(struct sr_nat *nat, uint16_t 
   struct sr_nat_connection *copy = NULL;
   struct sr_nat_connection *new_entry;
 
-  sr_ip_hdr_t *ip_header = (sr_ip_hdr_t *)(ip_packet);
-  unsigned int ip_header_len = (ip_header->ip_hl)*4;
-  sr_tcp_hdr_t *tcp_header = (sr_tcp_hdr_t *)(ip_packet + ip_header_len);
-
-  new_entry = (struct sr_nat_connection *)calloc(1, sizeof(struct sr_nat_connection));
-  new_entry->peer_ip = ip_header->ip_dst;
-  new_entry->peer_port = tcp_header->dst_port;
-  new_entry->state = state;
-  new_entry->last_updated = time(NULL);
-
   /* find the corresponding ext_port */
   struct sr_nat_mapping *curr = nat->mappings;
   while (curr) {
@@ -351,13 +341,26 @@ struct sr_nat_connection *sr_nat_insert_connection(struct sr_nat *nat, uint16_t 
   }
 
   if (curr) {
-    printf("[insert_connection] foud a map\n");
+    sr_ip_hdr_t *ip_header = (sr_ip_hdr_t *)(ip_packet);
+    unsigned int ip_header_len = (ip_header->ip_hl)*4;
+    sr_tcp_hdr_t *tcp_header = (sr_tcp_hdr_t *)(ip_packet + ip_header_len);
+
+    new_entry = (struct sr_nat_connection *)calloc(1, sizeof(struct sr_nat_connection));
+    new_entry->peer_ip = ip_header->ip_dst;
+    new_entry->peer_port = tcp_header->dst_port;
+    new_entry->state = state;
+    new_entry->last_updated = time(NULL);
+    
+    printf("[insert_connection] found a mapping\n");
     new_entry->next = curr->conns;
     curr->conns = new_entry;
     copy = (struct sr_nat_connection *) malloc(sizeof(struct sr_nat_connection)); 
     memcpy(copy, new_entry, sizeof(struct sr_nat_connection));
+
+    /* remove the corresponding SYN packet */
+    sr_nat_remove_unsolicited_packet(nat, ip_packet);
   } else {
-    printf("[insert_connection] did not find a map\n");
+    printf("[insert_connection] did not find a mapping\n");
   }
   
   pthread_mutex_unlock(&(nat->lock));
@@ -424,6 +427,42 @@ struct sr_nat_connection *sr_nat_update_connection(struct sr_nat *nat, struct sr
   
   pthread_mutex_unlock(&(nat->lock));
   return copy;
+}
+
+void sr_nat_remove_unsolicited_packet(struct sr_nat *nat, uint8_t* ip_packet) {
+  pthread_mutex_lock(&(nat->lock));
+
+  printf("[NAT]: remove unsolicited packet\n");
+  struct sr_nat_unsol_pkt *dummy = calloc(1, sizeof(struct sr_nat_unsol_pkt));
+  struct sr_nat_unsol_pkt *prev = dummy;
+  struct sr_nat_unsol_pkt *curr = nat->unsol_pkt;
+  dummy->next = nat->unsol_pkt;
+
+  sr_ip_hdr_t *ip_header = (sr_ip_hdr_t *)(ip_packet);
+  unsigned int ip_header_len = (ip_header->ip_hl)*4;
+  sr_tcp_hdr_t *tcp_header = (sr_tcp_hdr_t *)(ip_packet + ip_header_len);
+
+  sr_ip_hdr_t *temp_ip_header;
+  sr_tcp_hdr_t *temp_tcp_header;
+  uint8_t *temp_pkt;
+
+  while (curr) {
+    temp_pkt = curr->ip_packet;
+    temp_ip_header = (sr_ip_hdr_t *)(temp_pkt);
+    temp_tcp_header = (sr_tcp_hdr_t *)(temp_pkt + ip_header_len);
+    if (ip_header->ip_src == temp_ip_header->ip_src && ip_header->ip_dst == temp_ip_header->ip_dst && 
+      tcp_header->src_port == temp_tcp_header->src_port && tcp_header->dst_port == temp_tcp_header->dst_port &&
+      tcp_header->seq_num == temp_tcp_header->seq_num) {
+      prev->next = curr->next;
+      free(curr);
+      curr = prev->next;
+    }
+    else {
+      prev = curr;
+      curr = curr->next;
+    }
+  }
+  pthread_mutex_unlock(&(nat->lock));
 }
 
 /*---------------------------------------------------------------------
