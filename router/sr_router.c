@@ -378,6 +378,7 @@ void sr_handle_ippacket(struct sr_instance* sr,
           printf("TCP packet to router was forwarded!\n");
           return;
         }
+        else if (code == -1) return;
       }
       /* Send ICMP port unreacheable for traceroute
        * in case of udp or tcp protocol*/
@@ -485,7 +486,7 @@ int nat_handle_tcp(struct sr_instance* sr, uint8_t *ip_packet, unsigned int ip_p
         
         /* if it is duplicated SYN packet, drop it */
         if (conn) {
-          return 0;
+          return -1;
         } 
         /* else, insert this SYN packet into the unsolicitied packet list */
         else {

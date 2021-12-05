@@ -103,16 +103,13 @@ void *sr_nat_timeout(void *sr_ptr) {
     while (curr_unsol != NULL) {
 
       sr_ip_hdr_t *ip_header = (sr_ip_hdr_t *)(curr_unsol->ip_packet);
-
-      if (difftime(curtime, curr_unsol->last_updated) > DEFAULT_TCP_SYN_TO) {
+      sr_rt_t *lpm = sr_rt_lookup(sr->routing_table, htonl(ip_header->ip_src));
+      if (lpm && difftime(curtime, curr_unsol->last_updated) > DEFAULT_TCP_SYN_TO) {
         printf("[NAT]: TCP inbound SYN timeout\n");
-        sr_rt_t *lpm = sr_rt_lookup(sr->routing_table, htonl(ip_header->ip_src));
-        if (lpm) {
-          sr_send_icmp(sr, curr_unsol->ip_packet, lpm->interface, icmp_type_dstunreachable, 3);
-          prev_unsol->next = curr_unsol->next;
-          free(curr_unsol);
-          curr_unsol = prev_unsol->next;
-        }
+        sr_send_icmp(sr, curr_unsol->ip_packet, lpm->interface, icmp_type_dstunreachable, 3);
+        prev_unsol->next = curr_unsol->next;
+        free(curr_unsol);
+        curr_unsol = prev_unsol->next;
       }
       else {
         prev_unsol = curr_unsol;
