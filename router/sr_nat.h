@@ -38,6 +38,12 @@ typedef enum {
   LAST_ACK
 } sr_tcp_state_type;
 
+struct sr_nat_unsol_pkt {
+  uint8_t *ip_packet;
+  time_t last_updated;
+  struct sr_nat_unsol_pkt *next;
+};
+
 struct sr_nat_connection {
   /* add TCP connection state data members here */
   sr_tcp_state_type state;
@@ -54,6 +60,7 @@ struct sr_nat_mapping {
   uint16_t aux_int; /* internal port or icmp id */
   uint16_t aux_ext; /* external port or icmp id */
   time_t last_updated; /* use to timeout mappings */
+  struct sr_nat_unsol_pkt *unsol_pkt; /* unsolicited packets */
   struct sr_nat_connection *conns; /* list of connections. null for ICMP */
   struct sr_nat_mapping *next;
 };
@@ -93,10 +100,10 @@ struct sr_nat_mapping *sr_nat_lookup_internal(struct sr_nat *nat,
 struct sr_nat_mapping *sr_nat_insert_mapping(struct sr_nat *nat,
   uint32_t ip_int, uint16_t aux_int, sr_nat_mapping_type type );
 
-struct sr_nat_connection *sr_nat_update_connection(struct sr_nat *nat, struct sr_nat_mapping *mapping, uint8_t *ip_packet, int direction);
+struct sr_nat_connection *sr_nat_update_connection(struct sr_nat *nat, struct sr_nat_mapping *mapping, uint8_t *ip_packet, unsigned int ip_packet_len, int direction);
 
 struct sr_nat_connection *sr_nat_insert_connection(struct sr_nat *nat, uint16_t ext_port, uint8_t *ip_buf, unsigned int state);
 
-sr_tcp_state_type _determine_state(struct sr_nat_connection *conn, sr_tcp_hdr_t *buf);
+
 
 #endif

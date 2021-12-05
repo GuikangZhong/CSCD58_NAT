@@ -421,7 +421,7 @@ void sr_handle_ippacket(struct sr_instance* sr,
  *
  * Translate the ip address and or port for a given tcp packet with an ip header,
  * return a status code, 1 for successful translation, 0 for no translation required
- * and -1 is a signal to the router to drop the packet due to connection no found or timeout.
+ * and -1 is a signal to the router to drop the packet due to connection not found or timeout.
  *---------------------------------------------------------------------*/
 int nat_handle_tcp(struct sr_instance* sr, uint8_t *ip_packet, unsigned int ip_packet_len, int is_to_nat) {
   print_sr_mapping(sr->nat.mappings);
@@ -454,7 +454,7 @@ int nat_handle_tcp(struct sr_instance* sr, uint8_t *ip_packet, unsigned int ip_p
       print_state(conn->state);
     } else {
       printf("updating connection: internal -> external\n");
-      conn = sr_nat_update_connection(&sr->nat, mapping, (uint8_t *)ip_packet, 0);
+      conn = sr_nat_update_connection(&sr->nat, mapping, (uint8_t *)ip_packet, ip_packet_len, 0);
       if (!conn) {
         printf("updating connection fail, connection not found\n");
         /* drop the packet */
@@ -482,18 +482,17 @@ int nat_handle_tcp(struct sr_instance* sr, uint8_t *ip_packet, unsigned int ip_p
       /* if mapping is valid, check its list of connections*/
       mapping = sr_nat_lookup_external(&sr->nat, ntohs(tcp_header->dst_port), nat_mapping_tcp);
       if (mapping) {
-        struct sr_nat_connection *conn = sr_nat_update_connection(&sr->nat, mapping, (uint8_t *)ip_packet, 1);
+        struct sr_nat_connection *conn = sr_nat_update_connection(&sr->nat, mapping, (uint8_t *)ip_packet, ip_packet_len, 1);
         
         /* if it is duplicated SYN packet, drop it */
         if (conn) {
           return 0;
         } 
-        /* else, insert this SYN packet into the connection list
+        /* else, insert this SYN packet into the unsolicitied packet list */
         else {
-          sr_nat_insert_connection(&sr->nat, ntohs(tcp_header->dst_port), ntohl(ip_header->ip_src), 
-            ntohs(tcp_header->src_port), ntohl(tcp_header->seq_num));
-            return -1;
-        } */
+          
+          return -1;
+        }
       }
       /* if no mapping, send icmp port unreachable */
       else {
@@ -506,7 +505,7 @@ int nat_handle_tcp(struct sr_instance* sr, uint8_t *ip_packet, unsigned int ip_p
       /* if mapping is valid -> translate dst ip to private ip*/
       if (mapping) {
         printf("updating connection: external -> internal\n");
-        conn = sr_nat_update_connection(&sr->nat, mapping, (uint8_t *)ip_packet, 1);
+        conn = sr_nat_update_connection(&sr->nat, mapping, (uint8_t *)ip_packet, ip_packet_len, 1);
         if (!conn) {
           printf("updating connection fail, connection not found\n");
           return -1;
