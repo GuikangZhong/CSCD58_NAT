@@ -482,17 +482,8 @@ int nat_handle_tcp(struct sr_instance* sr, uint8_t *ip_packet, unsigned int ip_p
       /* if mapping is valid, check its list of connections*/
       mapping = sr_nat_lookup_external(&sr->nat, ntohs(tcp_header->dst_port), nat_mapping_tcp);
       if (mapping) {
-        struct sr_nat_connection *conn = sr_nat_update_connection(&sr->nat, mapping, (uint8_t *)ip_packet, ip_packet_len, 1);
-        
-        /* if it is duplicated SYN packet, drop it */
-        if (conn) {
-          return -1;
-        } 
-        /* else, insert this SYN packet into the unsolicitied packet list */
-        else {
-          sr_nat_insert_unsolicited_packet(&(sr->nat), (uint8_t *)ip_packet, ip_packet_len);
-          return -1;
-        }
+        sr_nat_update_connection(&sr->nat, mapping, (uint8_t *)ip_packet, ip_packet_len, 1);
+        return -1;
       }
       /* if no mapping, insert this SYN packet into the unsolicitied packet list */
       else {
