@@ -400,7 +400,7 @@ void sr_handle_ippacket(struct sr_instance* sr,
     }
     else if (sr->nat_enabled && protocol == ip_protocol_tcp) {
       int success = nat_handle_tcp(sr, packet, len, 0);
-      if (success==0 || success == -1) {
+      if (success == 0) {
         return;
       }
     }
@@ -420,8 +420,7 @@ void sr_handle_ippacket(struct sr_instance* sr,
  * Scope:  Global
  *
  * Translate the ip address and or port for a given tcp packet with an ip header,
- * return a status code, 1 for successful translation, 0 for no translation required
- * and -1 is a signal to the router to drop the packet due to connection not found or timeout.
+ * return a status code, 1 for success and 0 is a signal to the router to drop the packet or cache the packet.
  *---------------------------------------------------------------------*/
 int nat_handle_tcp(struct sr_instance* sr, uint8_t *ip_packet, unsigned int ip_packet_len, int is_to_nat) {
   print_sr_mapping(sr->nat.mappings);
@@ -458,7 +457,7 @@ int nat_handle_tcp(struct sr_instance* sr, uint8_t *ip_packet, unsigned int ip_p
       if (!conn) {
         printf("updating connection fail, connection not found\n");
         /* drop the packet */
-        return -1;
+        return 0;
       }
       printf("[state]:\n");
       print_state(conn->state);
@@ -474,7 +473,7 @@ int nat_handle_tcp(struct sr_instance* sr, uint8_t *ip_packet, unsigned int ip_p
   else if (is_to_nat == 1) {
     printf("[NAT]: external -> internal\n");
 
-    /* check whether it is inbound (external -> internal) SYN. If it is, wait for six seconds.
+    /* check whether it is unsolicitedinbound (external -> internal) SYN. If it is, wait for six seconds.
      * During this interval, if the NAT receives and translate outbound (internal -> external) SYN,
      * the NAT should silently drop the inbound SYN */
     if (tcp_header->SYN == 1 && tcp_header->ACK == 0) {
@@ -490,14 +489,14 @@ int nat_handle_tcp(struct sr_instance* sr, uint8_t *ip_packet, unsigned int ip_p
         } 
         /* else, insert this SYN packet into the unsolicitied packet list */
         else {
-          
+          sr_nat_insert_unsolicited_packet(&(sr->nat), (uint8_t *)ip_packet, ip_packet_len);
           return -1;
         }
       }
-      /* if no mapping, send icmp port unreachable */
+      /* if no mapping, insert this SYN packet into the unsolicitied packet list */
       else {
-        printf("[NAT]: send icmp port unreachable\n");
-        return 0;
+        sr_nat_insert_unsolicited_packet(&(sr->nat), (uint8_t *)ip_packet, ip_packet_len);
+        return -1;
       }
     }
     else {
@@ -508,7 +507,7 @@ int nat_handle_tcp(struct sr_instance* sr, uint8_t *ip_packet, unsigned int ip_p
         conn = sr_nat_update_connection(&sr->nat, mapping, (uint8_t *)ip_packet, ip_packet_len, 1);
         if (!conn) {
           printf("updating connection fail, connection not found\n");
-          return -1;
+          return 0;
         }
         printf("[state]:\n");
         print_state(conn->state);

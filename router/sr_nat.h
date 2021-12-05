@@ -104,6 +104,6 @@ struct sr_nat_connection *sr_nat_update_connection(struct sr_nat *nat, struct sr
 
 struct sr_nat_connection *sr_nat_insert_connection(struct sr_nat *nat, uint16_t ext_port, uint8_t *ip_buf, unsigned int state);
 
-
+void sr_nat_insert_unsolicited_packet(struct sr_nat *nat, uint8_t* ip_packet, unsigned int ip_packet_len);
 
 #endif

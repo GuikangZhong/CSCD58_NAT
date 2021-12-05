@@ -14,7 +14,6 @@
 
 int find_next_id(struct sr_nat *nat);
 sr_tcp_state_type _determine_state(struct sr_nat_connection *conn, sr_tcp_hdr_t *buf);
-void _sr_nat_insert_unsolicited_packet(struct sr_nat *nat, uint8_t* ip_packet, unsigned int ip_packet_len);
 
 /*---------------------------------------------------------------------
  * Method: sr_nat_init(void)
@@ -424,7 +423,7 @@ struct sr_nat_connection *sr_nat_update_connection(struct sr_nat *nat, struct sr
     /* if not found, it means the external host initiates this connection first, 
       so buffer this unsolicited inbound SYN */
     printf("[nat] insert the unsolicited packet\n");
-    _sr_nat_insert_unsolicited_packet(nat, ip_packet, ip_packet_len);
+    sr_nat_insert_unsolicited_packet(nat, ip_packet, ip_packet_len);
 
   }
   
@@ -433,17 +432,19 @@ struct sr_nat_connection *sr_nat_update_connection(struct sr_nat *nat, struct sr
 }
 
 /*---------------------------------------------------------------------
- * Method: _sr_nat_insert_unsolicited_packet(struct sr_nat *nat, uint8_t* ip_packet, unsigned int ip_packet_len)
- * Scope:  local
+ * Method: sr_nat_insert_unsolicited_packet(struct sr_nat *nat, uint8_t* ip_packet, unsigned int ip_packet_len)
+ * Scope:  global
  *
  * Insert the unsolicited SYN packet into sr_nat_mapping
  *---------------------------------------------------------------------*/
-void _sr_nat_insert_unsolicited_packet(struct sr_nat *nat, uint8_t* ip_packet, unsigned int ip_packet_len) {
+void sr_nat_insert_unsolicited_packet(struct sr_nat *nat, uint8_t* ip_packet, unsigned int ip_packet_len) {
+  pthread_mutex_lock(&(nat->lock));
   struct sr_nat_unsol_pkt *new_entry = calloc(1, sizeof(struct sr_nat_unsol_pkt));
   uint8_t *copy = malloc(sizeof(ip_packet_len));
   new_entry->ip_packet = copy;
   new_entry->next = nat->unsol_pkt;
   nat->unsol_pkt = new_entry;
+  pthread_mutex_unlock(&(nat->lock));
 }
 
 /*---------------------------------------------------------------------
