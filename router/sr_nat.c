@@ -97,15 +97,16 @@ void *sr_nat_timeout(void *sr_ptr) {
     /* handle periodic tasks here */
     /* first, check whether the unsolicited packets has a corresponding mapping */
     struct sr_nat_unsol_pkt *dummy_unsol_head = (struct sr_nat_unsol_pkt *)calloc(1, sizeof(struct sr_nat_unsol_pkt));
-    dummy_unsol_head->next = nat->mappings->unsol_pkt;
+    dummy_unsol_head->next = nat->unsol_pkt;
     struct sr_nat_unsol_pkt *prev_unsol = dummy_unsol_head;
-    struct sr_nat_unsol_pkt *curr_unsol = nat->mappings->unsol_pkt;
+    struct sr_nat_unsol_pkt *curr_unsol = nat->unsol_pkt;
 
     while (curr_unsol != NULL) {
 
       sr_ip_hdr_t *ip_header = (sr_ip_hdr_t *)(curr_unsol->ip_packet);
 
       if (difftime(curtime, curr_unsol->last_updated) > DEFAULT_TCP_SYN_TO) {
+        printf("[NAT]: TCP inbound SYN timeout\n");
         sr_rt_t *lpm = sr_rt_lookup(sr->routing_table, htonl(ip_header->ip_src));
         if (lpm) {
           sr_send_icmp(sr, curr_unsol->ip_packet, lpm->interface, icmp_type_dstunreachable, 3);
@@ -113,6 +114,10 @@ void *sr_nat_timeout(void *sr_ptr) {
           free(curr_unsol);
           curr_unsol = prev_unsol->next;
         }
+      }
+      else {
+        prev_unsol = curr_unsol;
+        curr_unsol = curr_unsol->next;
       }
     }
 
@@ -418,6 +423,7 @@ struct sr_nat_connection *sr_nat_update_connection(struct sr_nat *nat, struct sr
   } else {
     /* if not found, it means the external host initiates this connection first, 
       so buffer this unsolicited inbound SYN */
+    printf("[nat] insert the unsolicited packet\n");
     _sr_nat_insert_unsolicited_packet(nat, ip_packet, ip_packet_len);
 
   }
@@ -436,8 +442,8 @@ void _sr_nat_insert_unsolicited_packet(struct sr_nat *nat, uint8_t* ip_packet, u
   struct sr_nat_unsol_pkt *new_entry = calloc(1, sizeof(struct sr_nat_unsol_pkt));
   uint8_t *copy = malloc(sizeof(ip_packet_len));
   new_entry->ip_packet = copy;
-  new_entry->next = nat->mappings->unsol_pkt;
-  nat->mappings->unsol_pkt = new_entry;
+  new_entry->next = nat->unsol_pkt;
+  nat->unsol_pkt = new_entry;
 }
 
 /*---------------------------------------------------------------------

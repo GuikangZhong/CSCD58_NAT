@@ -60,7 +60,6 @@ struct sr_nat_mapping {
   uint16_t aux_int; /* internal port or icmp id */
   uint16_t aux_ext; /* external port or icmp id */
   time_t last_updated; /* use to timeout mappings */
-  struct sr_nat_unsol_pkt *unsol_pkt; /* unsolicited packets */
   struct sr_nat_connection *conns; /* list of connections. null for ICMP */
   struct sr_nat_mapping *next;
 };
@@ -72,6 +71,7 @@ struct sr_nat {
   unsigned int tcp_estab_idle_to; /* tcp established timeout */
   unsigned int tcp_transitory_to; /* tcp transitory timeout */
   int bitmap[TOTAL_PORTS / 32]; /* bit map to check if a ext id is in use */
+  struct sr_nat_unsol_pkt *unsol_pkt; /* unsolicited packets */
 
   /* threading */
   pthread_mutex_t lock;
