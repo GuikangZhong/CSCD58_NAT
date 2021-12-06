@@ -248,6 +248,7 @@ mininet> client3 ssh client1
 ssh: connect to host 10.0.1.100 port 22: No route to host
 ```
 Again, external hosts cannot directly open an connection with any internal host, ICMP host unreachable will be sent.<br>
+
 ![alt text](/images/icmp_t3c1.PNG "icmp_t3c1") <br>
 <div align="center"> <b>Fig.7 - client 3 receives an ICMP Host unreachable error</b></div> <br>
 
@@ -261,6 +262,7 @@ req1: Your NAT MUST NOT respond to an unsolicited inbound SYN packet for at leas
 req2: If during this interval the NAT receives and translates an outbound SYN for the connection the NAT MUST silently drop the original unsolicited inbound SYN packet.<br>
 
 req3: Otherwise, the NAT MUST send an ICMP Port Unreachable error (Type 3, Code 3) for the original SYN. <br>
+
 ![alt text](/images/tcp_syn_timeout.PNG "tcp_syn_timeout") <br>
 <div align="center"> <b>Fig.8 - client 3 receives an ICMP Type 3 Code 3 error after six seconds</b></div> <br>
 
