@@ -264,7 +264,7 @@ req2: If during this interval the NAT receives and translates an outbound SYN fo
 req3: Otherwise, the NAT MUST send an ICMP Port Unreachable error (Type 3, Code 3) for the original SYN. <br>
 
 ![alt text](/images/tcp_syn_timeout.PNG "tcp_syn_timeout") <br>
-<div align="center"> <b>Fig.8 - client 3 receives an ICMP Type 3 Code 3 error after six seconds</b></div> <br>
+<div align="center"> <b>Fig.8 - client 3 receives an ICMP Type 3 Code 3 error after around six seconds</b></div> <br>
 
 ### Mappings
 We use a mapping which has four columns: Internal IP address, internal identifier (identifier for ICMP, port for TCP), external identifier, and mapping type.<br>
@@ -393,3 +393,30 @@ If these flags were not used the defult values defined in sr_nat.h will be used.
     unsigned int tcp_transitory_to = DEFAULT_TCP_TRANSITORY_TO;
 ```
 ## Untested Functionality
+1. We were unable to find a proper set of TCP commands to test a successful simultaneous open case where "If during this interval the NAT receives and translates an outbound SYN for the connection the NAT MUST silently drop the original unsolicited inbound SYN packet". <br>
+2. We were able to find a proper set of TCP commands to test TCP Established connection idle-timeout and Transitory connection idle-timeout, but we already wrote code for such cases in sr_nat_timeout function. <br>
+```C
+while (cur_conn != NULL) {
+  if (cur_conn->state == ESTAB && difftime(curtime,cur_conn->last_updated) > nat->tcp_estab_idle_to) {
+      pre_conn->next = cur_conn->next;
+      free(cur_conn);
+      cur_conn = pre_conn->next;
+  }
+
+  else if (cur_conn->state == CLOSED) {
+    pre_conn->next = cur_conn->next;
+    free(cur_conn);
+    cur_conn = pre_conn->next;
+  }
+
+  else if (difftime(curtime,cur_conn->last_updated) > nat->tcp_transitory_to) {
+    pre_conn->next = cur_conn->next;
+    free(cur_conn);
+    cur_conn = pre_conn->next;
+  }
+  else {
+    pre_conn = cur_conn;
+    cur_conn = cur_conn->next;          
+  }
+}
+```
