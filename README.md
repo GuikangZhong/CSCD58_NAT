@@ -240,7 +240,13 @@ Below mapping table was captured from the log when we run "client1 wget http://1
 ```console
 IP_INT       aux_int       aux_ext          type
 -----------------------------------------------------------
-0a000164       54350          1024            1
+0a000164       3236          1030            0
+0a000164       3232          1029            0
+0a000165       3228          1028            0
+0a000165       3224          1027            0
+0a000165       3219          1026            0
+0a000165       3215          1025            0
+0a000165       3211          1024            0
 ```
 When assigning a port to a mapping, we avoid to use the well-known ports (0-1023). Thus, our TCP ports or ICMP identifiers are from (1024-65535) and we had used bitmap to track the avliable numbers.<br>
 Also, our mappings is "Endpoint Independent". In our mapping table the (IP_INT, aux_int) pair or the aux_ext can uniquely indentify a row in the table which is independent with the ip of the external host.<br><br>
