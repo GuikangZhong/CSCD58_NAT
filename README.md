@@ -259,12 +259,7 @@ Again, external hosts cannot directly open an connection with any internal host,
 mininet> client3 ssh 172.64.3.3
 ssh: connect to host 172.64.3.3 port 22: Connection refused
 ```
-req1: Your NAT MUST NOT respond to an unsolicited inbound SYN packet for at least 6 seconds after the packet is received. <br>
-
-req2: If during this interval the NAT receives and translates an outbound SYN for the connection the NAT MUST silently drop the original unsolicited inbound SYN packet.<br>
-
-req3: Otherwise, the NAT MUST send an ICMP Port Unreachable error (Type 3, Code 3) for the original SYN. <br>
-
+When a external host attempted to initiate a TCP connection, the NAT will cache the SYN packet sent from the external host and wait for at least 6 seconds. If during this interval the NAT does not receive and translate an outbound SYN for the connection the NAT send an ICMP Port Unreachable error (Type 3, Code 3) for the original SYN packet. <br>
 ![alt text](/images/tcp_syn_timeout.PNG "tcp_syn_timeout") <br>
 <div align="center"> <b>Fig.8 - client 3 receives an ICMP Type 3 Code 3 error after around six seconds</b></div> <br>
 
