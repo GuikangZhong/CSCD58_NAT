@@ -359,8 +359,8 @@ void sr_handle_ippacket(struct sr_instance* sr,
         
         /* if nat is enabled and we can find a match in NAT */
         if (sr->nat_enabled && icmp_header->icmp_type == 0 && nat_handle_icmp(sr, packet)) {
-            printf("[NAT]: translated public ip to privite ip for ICMP\n");
-            sr_forward_ippacket(sr, (sr_ip_hdr_t*) packet, len, interface);
+          printf("[NAT]: translated public ip to privite ip for ICMP\n");
+          sr_forward_ippacket(sr, (sr_ip_hdr_t*) packet, len, interface);
           return;
         }
 
@@ -424,7 +424,8 @@ void sr_handle_ippacket(struct sr_instance* sr,
  * Scope:  Global
  *
  * Translate the ip address and or port for a given tcp packet with an ip header,
- * return a status code, 1 for success and 0 is a signal to the router to drop the packet or cache the packet.
+ * return a status code, 1 for success and 0 is a signal to the router to ICMP error message.
+ * -1 for router to drop packet or cache packet
  *---------------------------------------------------------------------*/
 int nat_handle_tcp(struct sr_instance* sr, uint8_t *ip_packet, unsigned int ip_packet_len, int is_to_nat) {
   print_sr_mapping(sr->nat.mappings);
