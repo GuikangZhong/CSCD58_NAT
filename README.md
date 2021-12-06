@@ -211,6 +211,7 @@ In Wireshark <br>
 
 ![alt text](/images/client2_ICMP_echo_request_eth4.PNG "client2_ICMP_echo_request_eth2") <br>
 <div align="center"> <b>Fig.4 - client2's echo request to server1 at eth2</b></div> <br>
+
 #### Pinging from the external hosts to any internal hosts in NAT mode
 ```console
 mininet> client3 ping -c3 client1
@@ -242,6 +243,7 @@ In Wireshark <br>
 ![alt text](/images/client2_tcp_conn_eth3.PNG "client2_tcp_conn_eth3") <br>
 <div align="center"> <b>Fig.6 - client2's TCP connection to server2 at eth3</b></div> <br>
 As you can see, client 2 uses its IP address 10.0.1.101 and port number 49478 to send TCP packets. In the perspective of server2, these incoming packets are from IP 172.64.3.2, Port 1024. Same thing happens when server2 sends responses back to client2, the destination IP and port are changed after NAT processes them. This means our NAT successfully rewrites TCP packets from internal hosts to external hosts, and vice versa. <br>
+
 #### Open a TCP connection from client3 to directly client1 in NAT mode
 ```console
 mininet> client3 ssh client1
