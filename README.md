@@ -173,7 +173,7 @@ sr_tcp_state_type _determine_state(struct sr_nat_connection *conn, sr_tcp_hdr_t 
 
 ## List of tests cases run and results
 ### ICMP Echo Request/Reply
-1. Pinging from the internal hosts to any external hosts in NAT mode
+#### Pinging from the internal hosts to any external hosts in NAT mode
 ```console
 mininet> client1 ping -c3 server1
 PING 172.64.3.21 (172.64.3.21) 56(84) bytes of data.
@@ -211,9 +211,18 @@ In Wireshark <br>
 
 ![alt text](/images/client2_ICMP_echo_request_eth4.PNG "client2_ICMP_echo_request_eth2") <br>
 <div align="center"> <b>Fig.4 - client2's echo request to server1 at eth2</b></div> <br>
+#### Pinging from the internal hosts to any external hosts in NAT mode
+```console
+mininet> client3 ping -c3 client1
+PING 10.0.1.100 (10.0.1.100) 56(84) bytes of data.
+
+--- 10.0.1.100 ping statistics ---
+3 packets transmitted, 0 received, 100% packet loss, time 2009ms
+```
+Enternal host can not directly ping an internal host, packets lost as expected. <br>
 
 ### TCP Connections
-2. Open a TCP connection from client1 to server1 in NAT mode
+#### Open a TCP connection from client2 to server1 in NAT mode
 ```console
 mininet> client2 wget http://172.64.3.22
 --2021-12-04 14:50:26--  http://172.64.3.22/
@@ -232,10 +241,16 @@ In Wireshark <br>
 
 ![alt text](/images/client2_tcp_conn_eth3.PNG "client2_tcp_conn_eth3") <br>
 <div align="center"> <b>Fig.6 - client2's TCP connection to server2 at eth3</b></div> <br>
-As you can see, client 2 uses its IP address 10.0.1.101 and port number 49478 to send TCP packets. In the perspective of server2, these incoming packets are from IP 172.64.3.2, Port 1024. Same thing happens when server2 sends responses back to client2, the destination IP and port are changed after NAT processes them. This means our NAT successfully rewrites TCP packets from internal hosts to external hosts, and vice versa. <br><br>
+As you can see, client 2 uses its IP address 10.0.1.101 and port number 49478 to send TCP packets. In the perspective of server2, these incoming packets are from IP 172.64.3.2, Port 1024. Same thing happens when server2 sends responses back to client2, the destination IP and port are changed after NAT processes them. This means our NAT successfully rewrites TCP packets from internal hosts to external hosts, and vice versa. <br>
+#### Open a TCP connection from client3 to client1 in NAT mode
+```console
+mininet> client3 ssh client1
+ssh: connect to host 10.0.1.100 port 22: No route to host
+```
+Again 
 
 ### Mappings
-3. We use a mapping which has four columns: Internal IP address, internal identifier (identifier for ICMP, port for TCP), external identifier, and mapping type.<br>
+We use a mapping which has four columns: Internal IP address, internal identifier (identifier for ICMP, port for TCP), external identifier, and mapping type.<br>
 Below mapping table was captured from the log when we run "client1 wget http://172.64.3.21"<br>
 ```console
 IP_INT       aux_int       aux_ext          type
@@ -252,7 +267,7 @@ When assigning a port to a mapping, we avoid to use the well-known ports (0-1023
 Also, our mappings is "Endpoint Independent". In our mapping table the (IP_INT, aux_int) pair or the aux_ext can uniquely indentify a row in the table which is independent with the ip of the external host.<br><br>
 
 ### Cleaning up defunct mappings
-# ICMP Case
+#### ICMP Case
 First we run "client2 ping -c1 server1", and captured the below log<br>
 ``` console
 IP_INT       aux_int       aux_ext          type
@@ -289,7 +304,7 @@ Wrapping in ethernet frame
 ```
 Note on the top of the log, it created a mapping with aux_ext 1024. After 60 seconds (the defualt time out value) the last line was printed out, indicated that the mapping was timeout and got cleaned.<br>
 
-# TCP Case
+#### TCP Case
 Then we run "client1 wget http://172.64.3.21", and captured the below log<br>
 ``` console
 IP_INT       aux_int       aux_ext          type
