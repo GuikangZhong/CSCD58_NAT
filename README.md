@@ -168,6 +168,22 @@ struct sr_nat_connection *sr_nat_update_connection(struct sr_nat *nat, struct sr
  * Based on the current connection state and the tcp flags determine the next state
  *---------------------------------------------------------------------*/
 sr_tcp_state_type _determine_state(struct sr_nat_connection *conn, sr_tcp_hdr_t *buf);
+
+/*---------------------------------------------------------------------
+ * Method: sr_nat_remove_unsolicited_packet(struct sr_nat *nat, uint8_t* ip_packet)
+ * Scope:  global
+ *
+ * Remove the unsolicited SYN packet from sr_nat_mapping
+ *---------------------------------------------------------------------*/
+void sr_nat_remove_unsolicited_packet(struct sr_nat *nat, uint8_t* ip_packet);
+
+/*---------------------------------------------------------------------
+ * Method: sr_nat_insert_unsolicited_packet(struct sr_nat *nat, uint8_t* ip_packet, unsigned int ip_packet_len)
+ * Scope:  global
+ *
+ * Insert the unsolicited SYN packet into sr_nat_mapping
+ *---------------------------------------------------------------------*/
+void sr_nat_insert_unsolicited_packet(struct sr_nat *nat, uint8_t* ip_packet, unsigned int ip_packet_len);
 ```
 
 
