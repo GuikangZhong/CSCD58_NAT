@@ -235,12 +235,12 @@ In Wireshark <br>
 As you can see, client 2 uses its IP address 10.0.1.101 and port number 49478 to send TCP packets. In the perspective of server2, these incoming packets are from IP 172.64.3.2, Port 1024. Same thing happens when server2 sends responses back to client2, the destination IP and port are changed after NAT processes them. This means our NAT successfully rewrites TCP packets from internal hosts to external hosts, and vice versa. <br><br>
 
 ### Mappings
-3. We use a mapping which has four columns: Internal IP address, internal identifier (identifier for ICMP, port for TCP), external identifier, and mapping type.
-
+3. We use a mapping which has four columns: Internal IP address, internal identifier (identifier for ICMP, port for TCP), external identifier, and mapping type.<br>
+Below mapping table was captured from the log when we run "client1 wget http://172.64.3.21"<br>
 ```console
 IP_INT       aux_int       aux_ext          type
 -----------------------------------------------------------
 0a000164       54350          1024            1
 ```
-When assigning a port to a mapping, we avoid to use the well-known ports (0-1023), thus our TCP ports or ICMP identifiers are from (1024-65535) and we used bitmap to track the avliable numbers.
-
+When assigning a port to a mapping, we avoid to use the well-known ports (0-1023). Thus, our TCP ports or ICMP identifiers are from (1024-65535) and we had used bitmap to track the avliable numbers.<br>
+Also, our mappings is "Endpoint Independent". In our mapping table the (IP_INT, aux_int) pair or the aux_ext can uniquely indentify a row in the table which is independent with the ip of the external host.<br>
