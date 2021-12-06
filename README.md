@@ -393,8 +393,78 @@ If these flags were not used the defult values defined in sr_nat.h will be used.
     unsigned int tcp_transitory_to = DEFAULT_TCP_TRANSITORY_TO;
 ```
 ## Untested Functionality
-1. We were unable to find a proper set of TCP commands to test a successful simultaneous open case where "If during this interval the NAT receives and translates an outbound SYN for the connection the NAT MUST silently drop the original unsolicited inbound SYN packet". <br>
-2. We were able to find a proper set of TCP commands to test TCP Established connection idle-timeout and Transitory connection idle-timeout, but we already wrote code for such cases in sr_nat_timeout function. <br>
+1. We were unable to find a proper set of TCP commands to test a successful simultaneous open case where "If during this interval the NAT receives and translates an outbound SYN for the connection the NAT MUST silently drop the original unsolicited inbound SYN packet". We wrote codes for such case in nat_handle_tcp function in sr_router.c <br>
+```C
+int nat_handle_tcp(struct sr_instance* sr, uint8_t *ip_packet, unsigned int ip_packet_len, int is_to_nat) {
+  print_sr_mapping(sr->nat.mappings);
+  
+  struct sr_nat_mapping *mapping = NULL;
+  struct sr_nat_connection *conn = NULL;
+  sr_ip_hdr_t *ip_header = (sr_ip_hdr_t *)(ip_packet);
+  unsigned int ip_header_len = (ip_header->ip_hl)*4;
+  sr_tcp_hdr_t *tcp_header = (sr_tcp_hdr_t *)(ip_packet + ip_header_len);
+  
+  printf("========[NAT]: TCP packet arrived! =======\n");
+  /* internal to internal */
+  if (is_private_ip(ntohl(ip_header->ip_src)) && is_private_ip(ntohl(ip_header->ip_dst))) {
+    return 1;
+  }
+
+  /* internal to external */
+  else if (is_private_ip(ntohl(ip_header->ip_src))) {
+    printf("[NAT]: internal -> external\n");
+    print_hdr_tcp((uint8_t *)tcp_header);
+    mapping = sr_nat_lookup_internal(&sr->nat, ntohl(ip_header->ip_src), ntohs(tcp_header->src_port), nat_mapping_tcp);
+
+    /* if empty or time out -> insert */
+    if (!mapping) {
+      mapping = sr_nat_insert_mapping(&sr->nat, ntohl(ip_header->ip_src), ntohs(tcp_header->src_port), nat_mapping_tcp);
+      /* insert the connection */
+      printf("inserting connection: internal -> external\n");
+      conn = sr_nat_insert_connection(&sr->nat, mapping->aux_ext, (uint8_t *)ip_header, SYN_SENT);
+      printf("[state]:\n");
+      print_state(conn->state);
+    } else {
+      printf("updating connection: internal -> external\n");
+      conn = sr_nat_update_connection(&sr->nat, mapping, (uint8_t *)ip_packet, ip_packet_len, 0);
+      if (!conn) {
+        printf("updating connection fail, connection not found\n");
+        /* drop the packet */
+        return 0;
+      }
+      printf("[state]:\n");
+      print_state(conn->state);
+    }
+
+    /* mapping is valid -> translate src ip to public ip*/
+    tcp_header->src_port = htons(mapping->aux_ext);
+    sr_rt_t *lpm = sr_rt_lookup(sr->routing_table, ip_header->ip_dst);
+    sr_if_t* interface_info = sr_get_interface(sr, lpm->interface);
+    ip_header->ip_src = interface_info->ip;
+  }
+  /* external to internal s->c */
+  else if (is_to_nat == 1) {
+    printf("[NAT]: external -> internal\n");
+
+    /* check whether it is unsolicitedinbound (external -> internal) SYN. If it is, wait for six seconds.
+     * During this interval, if the NAT receives and translate outbound (internal -> external) SYN,
+     * the NAT should silently drop the inbound SYN */
+    if (tcp_header->SYN == 1 && tcp_header->ACK == 0) {
+      printf("[NAT]: inboud SYN\n");
+      /* if mapping is valid, check its list of connections*/
+      mapping = sr_nat_lookup_external(&sr->nat, ntohs(tcp_header->dst_port), nat_mapping_tcp);
+      if (mapping) {
+        sr_nat_update_connection(&sr->nat, mapping, (uint8_t *)ip_packet, ip_packet_len, 1);
+        return -1;
+      }
+      /* if no mapping, insert this SYN packet into the unsolicitied packet list */
+      else {
+        sr_nat_insert_unsolicited_packet(&(sr->nat), (uint8_t *)ip_packet, ip_packet_len);
+        return -1;
+      }
+    }
+```
+3. We were able to find a proper set of TCP commands to test TCP Established connection idle-timeout and Transitory connection idle-timeout, but we wrote code for such cases in sr_nat_timeout function in sr_nat.c <br>
 ```C
 while (cur_conn != NULL) {
   if (cur_conn->state == ESTAB && difftime(curtime,cur_conn->last_updated) > nat->tcp_estab_idle_to) {
