@@ -402,6 +402,9 @@ void sr_handle_ippacket(struct sr_instance* sr,
     else if (sr->nat_enabled && protocol == ip_protocol_tcp) {
       int success = nat_handle_tcp(sr, packet, len, 0);
       if (success == 0) {
+        /* external host cannot send packet directly to internal host,
+          send type 3 code 1(host unreachable error) */
+        sr_send_icmp(sr, packet, interface, icmp_type_dstunreachable, 1);
         return;
       }
     }
@@ -510,6 +513,10 @@ int nat_handle_tcp(struct sr_instance* sr, uint8_t *ip_packet, unsigned int ip_p
   }
   /* external to external */
   else if (is_to_nat == 0) {
+    /* if the destionation ip address is private ip address, this packet is unvalid, send icmp unreachable */
+    if (is_private_ip(ntohl(ip_header->ip_dst))) {
+      return 0;
+    }
     printf("external -> external \n");
     return 1;
   }
