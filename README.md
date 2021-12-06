@@ -321,4 +321,34 @@ IP_INT       aux_int       aux_ext          type
 ```
 Note on the top of the log, a mapping was created for the TCP transmission with the same aux_ext number 1024 again, which means the number 1024 was released along with the clean of mapping from above execution. <br>
 After the close TCP sessions, the connection's state changed to CLOSED. Since there is no vlaid (valid menas non-closed and non-timeout) connention in the mapping, the mapping got cleaned.<br>
-The last two lines of the log can verify that the mapping was indead cleaned.<br>
+The last two lines of the log can verify that the mapping was indead cleaned.<br><br>
+
+## Adding command-line flags
+1. -n -- Enable NAT functionality
+2. -I INTEGER -- ICMP query timeout interval in seconds (default to 60)
+3. -E INTEGER -- TCP Established Idle Timeout in seconds (default to 7440)
+4. -E INTEGER -- TCP Established Idle Timeout in seconds (default to 7440)
+
+The first flag was already added in the starter code and we have added the reset 3 flags. <br>
+In main() at sr_main.c below cases were extened in the end of the switch statement.<br>
+```C
+            case 'I':
+                icmp_query_to = atoi(optarg);
+            case 'E':
+                tcp_estab_idle_to = atoi(optarg);
+            case 'R':
+                tcp_transitory_to = atoi(optarg);
+```
+In sr_nat_init() at sr_nat.c, these timeout values get stored. <br>
+```C
+  /* Initialize any variables here */
+  nat->icmp_query_to = icmp_query_to;
+  nat->tcp_estab_idle_to = tcp_estab_idle_to;
+  nat->tcp_transitory_to = tcp_transitory_to;
+```
+If these flags were not used the defult values defined in sr_nat.h will be used. 
+```C
+    unsigned int icmp_query_to = DEFAULT_ICMP_QUERY_TO;	
+    unsigned int tcp_estab_idle_to = DEFAULT_TCP_ESTABLISHED_TO;
+    unsigned int tcp_transitory_to = DEFAULT_TCP_TRANSITORY_TO;
+```
