@@ -280,7 +280,7 @@ Generating arp packet
 Wrapping in ethernet frame 
 [NAT]: ICMP query timeout, clean mapping of id 1024
 ```
-Note on the top of the log, it created a mapping with aux_ext be 1024. After 60 seconds (the defualt time out value) the last line printed out, indicated that the mapping is now time out and was cleaned.<br>
+Note on the top of the log, it created a mapping with aux_ext 1024. After 60 seconds (the defualt time out value) the last line was printed out, indicated that the mapping was timeout and got cleaned.<br>
 
 Then we run "client1 wget http://172.64.3.21", and captured the below log<br>
 ``` console
@@ -319,6 +319,6 @@ IP header:
 IP_INT       aux_int       aux_ext          type
 -----------------------------------------------------------
 ```
-Note on the top of the log, a mapping was created for the TCP transmission with the aux_ext 1024 again, which means 1024 was released along with the clean of a mapping from above command. <br>
+Note on the top of the log, a mapping was created for the TCP transmission with the same aux_ext number 1024 again, which means the number 1024 was released along with the clean of mapping from above execution. <br>
 After the close TCP sessions, the connection's state changed to CLOSED. Since there is no vlaid (valid menas non-closed and non-timeout) connention in the mapping, the mapping got cleaned.<br>
-The last line of the log can verify that the mapping was indead cleaned.<br>
+The last two lines of the log can verify that the mapping was indead cleaned.<br>
