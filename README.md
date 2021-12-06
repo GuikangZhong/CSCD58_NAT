@@ -236,3 +236,11 @@ As you can see, client 2 uses its IP address 10.0.1.101 and port number 49478 to
 
 ### Mappings
 3. We use a mapping which has four columns: Internal IP address, internal identifier (identifier for ICMP, port for TCP), external identifier, and mapping type.
+
+```console
+IP_INT       aux_int       aux_ext          type
+-----------------------------------------------------------
+0a000164       54350          1024            1
+```
+When assigning a port to a mapping, we avoid to use the well-known ports (0-1023), thus our TCP ports or ICMP identifiers are from (1024-65535) and we used bitmap to track the avliable numbers.
+
