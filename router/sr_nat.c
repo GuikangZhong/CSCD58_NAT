@@ -429,6 +429,12 @@ struct sr_nat_connection *sr_nat_update_connection(struct sr_nat *nat, struct sr
   return copy;
 }
 
+/*---------------------------------------------------------------------
+ * Method: sr_nat_remove_unsolicited_packet(struct sr_nat *nat, uint8_t* ip_packet)
+ * Scope:  global
+ *
+ * Remove the unsolicited SYN packet from sr_nat_mapping
+ *---------------------------------------------------------------------*/
 void sr_nat_remove_unsolicited_packet(struct sr_nat *nat, uint8_t* ip_packet) {
   pthread_mutex_lock(&(nat->lock));
 
