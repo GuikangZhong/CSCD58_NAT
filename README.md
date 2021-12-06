@@ -243,4 +243,82 @@ IP_INT       aux_int       aux_ext          type
 0a000164       54350          1024            1
 ```
 When assigning a port to a mapping, we avoid to use the well-known ports (0-1023). Thus, our TCP ports or ICMP identifiers are from (1024-65535) and we had used bitmap to track the avliable numbers.<br>
-Also, our mappings is "Endpoint Independent". In our mapping table the (IP_INT, aux_int) pair or the aux_ext can uniquely indentify a row in the table which is independent with the ip of the external host.<br>
+Also, our mappings is "Endpoint Independent". In our mapping table the (IP_INT, aux_int) pair or the aux_ext can uniquely indentify a row in the table which is independent with the ip of the external host.<br><br>
+
+### Cleaning up defunct mappings
+First we run "client2 ping -c1 server1", and captured the below log<br>
+``` console
+IP_INT       aux_int       aux_ext          type
+-----------------------------------------------------------
+0a000165       3098          1024            0
+[NAT]: packet arrived! 
+172.64.3.21
+[NAT]: external -> internal
+[NAT]: translated public ip to privite ip for ICMP
+Forwarding packet ... 
+Sending an arp message:
+Generating arp packet 
+Wrapping in ethernet frame 
+Current local time and date: Sun Dec  5 01:36:04 2021
+*** -> Received packet of length 42 
+Confirmed destination of following frame 
+Received the following ARP packet: 
+Wrapping in ethernet frame 
+Current local time and date: Sun Dec  5 01:36:08 2021
+*** -> Received packet of length 42 
+Confirmed destination of following frame 
+Received the following ARP packet: 
+Sending an arp message:
+Generating arp packet 
+Wrapping in ethernet frame 
+Current local time and date: Sun Dec  5 01:36:08 2021
+*** -> Received packet of length 42 
+Confirmed destination of following frame 
+Received the following ARP packet: 
+Sending an arp message:
+Generating arp packet 
+Wrapping in ethernet frame 
+[NAT]: ICMP query timeout, clean mapping of id 1024
+```
+Note on the top of the log, it created a mapping with aux_ext be 1024. After 60 seconds (the defualt time out value) the last line printed out, indicated that the mapping is now time out and was cleaned.<br>
+
+Then we run "client1 wget http://172.64.3.21", and captured the below log<br>
+``` console
+IP_INT       aux_int       aux_ext          type
+-----------------------------------------------------------
+0a000164       54350          1024            1
+========[NAT]: TCP packet arrived! =======
+[NAT]: external -> internal
+updating connection: external -> internal
+[update_connection] foud a map (inbound)
+[state]:
+CLOSED
+[NAT]: translated public ip to privite ip for TCP
+Forwarding packet ... 
+Wrapping in ethernet frame 
+TCP packet to router was forwarded!
+[NAT]: TCP mapping timeout, clean mapping of id 1024
+Current local time and date: Sun Dec  5 00:52:44 2021
+*** -> Received packet of length 98 
+Confirmed destination of following frame 
+Confirmed integrity of following packet:
+IP header:
+	version: 4
+	header length: 5
+	type of service: 0
+	length: 84
+	id: 59998
+	fragment flag: DF
+	fragment offset: 0
+	TTL: 64
+	protocol: 1
+	checksum: 33337
+	source: 10.0.1.100
+	destination: 10.0.1.101
+
+IP_INT       aux_int       aux_ext          type
+-----------------------------------------------------------
+```
+Note on the top of the log, a mapping was created for the TCP transmission with the aux_ext 1024 again, which means 1024 was released along with the clean of a mapping from above command. <br>
+After the close TCP sessions, the connection's state changed to CLOSED. Since there is no vlaid (valid menas non-closed and non-timeout) connention in the mapping, the mapping got cleaned.<br>
+The last line of the log can verify that the mapping was indead cleaned.<br>
