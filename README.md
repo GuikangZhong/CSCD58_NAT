@@ -246,6 +246,7 @@ When assigning a port to a mapping, we avoid to use the well-known ports (0-1023
 Also, our mappings is "Endpoint Independent". In our mapping table the (IP_INT, aux_int) pair or the aux_ext can uniquely indentify a row in the table which is independent with the ip of the external host.<br><br>
 
 ### Cleaning up defunct mappings
+# ICMP Case
 First we run "client2 ping -c1 server1", and captured the below log<br>
 ``` console
 IP_INT       aux_int       aux_ext          type
@@ -282,6 +283,7 @@ Wrapping in ethernet frame
 ```
 Note on the top of the log, it created a mapping with aux_ext 1024. After 60 seconds (the defualt time out value) the last line was printed out, indicated that the mapping was timeout and got cleaned.<br>
 
+# TCP Case
 Then we run "client1 wget http://172.64.3.21", and captured the below log<br>
 ``` console
 IP_INT       aux_int       aux_ext          type
