@@ -173,7 +173,7 @@ sr_tcp_state_type _determine_state(struct sr_nat_connection *conn, sr_tcp_hdr_t 
 
 ## List of tests cases run and results
 ### ICMP Echo Request/Reply
-1. Pinging from the internal hosts to any external hosts in NAT mode
+Pinging from the internal hosts to any external hosts in NAT mode
 ```console
 mininet> client1 ping -c3 server1
 PING 172.64.3.21 (172.64.3.21) 56(84) bytes of data.
@@ -213,7 +213,7 @@ In Wireshark <br>
 <div align="center"> <b>Fig.4 - client2's echo request to server1 at eth2</b></div> <br>
 
 ### TCP Connections
-2. Open a TCP connection from client1 to server1 in NAT mode
+Open a TCP connection from client1 to server1 in NAT mode
 ```console
 mininet> client2 wget http://172.64.3.22
 --2021-12-04 14:50:26--  http://172.64.3.22/
@@ -236,7 +236,7 @@ As you can see, client 2 uses its IP address 10.0.1.101 and port number 49478 to
 
 
 ### Mappings
-3. We use a mapping which has four columns: Internal IP address, internal identifier (identifier for ICMP, port for TCP), external identifier, and mapping type.<br>
+We use a mapping which has four columns: Internal IP address, internal identifier (identifier for ICMP, port for TCP), external identifier, and mapping type.<br>
 Below mapping table was captured from the log when we run "client1 wget http://172.64.3.21"<br>
 ```console
 IP_INT       aux_int       aux_ext          type
