@@ -211,7 +211,7 @@ In Wireshark <br>
 
 ![alt text](/images/client2_ICMP_echo_request_eth4.PNG "client2_ICMP_echo_request_eth2") <br>
 <div align="center"> <b>Fig.4 - client2's echo request to server1 at eth2</b></div> <br>
-#### Pinging from the internal hosts to any external hosts in NAT mode
+#### Pinging from the external hosts to any internal hosts in NAT mode
 ```console
 mininet> client3 ping -c3 client1
 PING 10.0.1.100 (10.0.1.100) 56(84) bytes of data.
@@ -219,7 +219,7 @@ PING 10.0.1.100 (10.0.1.100) 56(84) bytes of data.
 --- 10.0.1.100 ping statistics ---
 3 packets transmitted, 0 received, 100% packet loss, time 2009ms
 ```
-Enternal host can not directly ping an internal host, packets lost as expected. <br>
+Enternal hosts can not directly ping any internal host, packets lost as expected. <br>
 
 ### TCP Connections
 #### Open a TCP connection from client2 to server1 in NAT mode
@@ -247,7 +247,20 @@ As you can see, client 2 uses its IP address 10.0.1.101 and port number 49478 to
 mininet> client3 ssh client1
 ssh: connect to host 10.0.1.100 port 22: No route to host
 ```
-Again 
+Again, external hosts cannot directly open an connection with any internal host, ICMP host unreachable will be sent.<br>
+++++
+
+#### Open a TCP connection from client3 to NAT's external port (simultaneous-open)
+```console
+mininet> client3 ssh 172.64.3.3
+ssh: connect to host 172.64.3.3 port 22: Connection refused
+```
+req1: Your NAT MUST NOT respond to an unsolicited inbound SYN packet for at least 6 seconds after the packet is received. <br>
+
+req2: If during this interval the NAT receives and translates an outbound SYN for the connection the NAT MUST silently drop the original unsolicited inbound SYN packet.<br>
+
+req3: Otherwise, the NAT MUST send an ICMP Port Unreachable error (Type 3, Code 3) for the original SYN. <br>
++++
 
 ### Mappings
 We use a mapping which has four columns: Internal IP address, internal identifier (identifier for ICMP, port for TCP), external identifier, and mapping type.<br>
@@ -343,8 +356,8 @@ IP_INT       aux_int       aux_ext          type
 -----------------------------------------------------------
 ```
 Note on the top of the log, a mapping was created for the TCP transmission with the same aux_ext number 1024 again, which means the number 1024 was released along with the clean of mapping from above execution. <br>
-After the close TCP sessions, the connection's state changed to CLOSED. Since there is no vlaid (valid menas non-closed and non-timeout) connention in the mapping, the mapping got cleaned.<br>
-The last two lines of the log can verify that the mapping was indead cleaned.<br><br>
+After the close TCP sessions, the connection's state changed to CLOSED. Since there is no valid (valid menas non-closed and non-timeout) connention in the mapping, the mapping got cleaned.<br>
+The last two lines of the log can verify that the mapping was indeed cleaned.<br><br>
 
 ## Adding command-line flags
 1. -n -- Enable NAT functionality
@@ -375,3 +388,4 @@ If these flags were not used the defult values defined in sr_nat.h will be used.
     unsigned int tcp_estab_idle_to = DEFAULT_TCP_ESTABLISHED_TO;
     unsigned int tcp_transitory_to = DEFAULT_TCP_TRANSITORY_TO;
 ```
+## Untested Functionality
