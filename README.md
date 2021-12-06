@@ -257,9 +257,14 @@ Again, external hosts cannot directly open an connection with any internal host,
 mininet> client3 ssh 172.64.3.3
 ssh: connect to host 172.64.3.3 port 22: Connection refused
 ```
+req1: Your NAT MUST NOT respond to an unsolicited inbound SYN packet for at least 6 seconds after the packet is received. <br>
+
+req2: If during this interval the NAT receives and translates an outbound SYN for the connection the NAT MUST silently drop the original unsolicited inbound SYN packet.<br>
+
+req3: Otherwise, the NAT MUST send an ICMP Port Unreachable error (Type 3, Code 3) for the original SYN. <br>
+
 ![alt text](/images/tcp_syn_timeout.PNG "tcp_syn_timeout") <br>
 <div align="center"> <b>Fig.8 - client 3 receives an ICMP Type 3 Code 3 error after around six seconds</b></div> <br>
-When a external host attempted to initiate a TCP connection, the NAT will cache the SYN packet sent from the external host and wait for at least 6 seconds. If during this interval the NAT does not receive and translate an outbound SYN for the connection the NAT send an ICMP Port Unreachable error (Type 3, Code 3) for the original SYN packet. <br>
 
 ### Mappings
 We use a mapping which has four columns: Internal IP address, internal identifier (identifier for ICMP, port for TCP), external identifier, and mapping type.<br>
@@ -388,9 +393,34 @@ If these flags were not used the defult values defined in sr_nat.h will be used.
     unsigned int tcp_transitory_to = DEFAULT_TCP_TRANSITORY_TO;
 ```
 ## Untested Functionality
-1. We were unable to find a proper set of TCP commands to test a successful simultaneous open case where "If during this interval the NAT receives and translates an outbound SYN for the connection the NAT MUST silently drop the original unsolicited inbound SYN packet". <br>
-2. We were able to find a proper set of TCP commands to test TCP Established connection idle-timeout and Transitory connection idle-timeout, but we already wrote code for such cases in sr_nat_timeout function. <br>
+1. We were unable to find a proper set of TCP commands to test a successful simultaneous open case where "If during this interval the NAT receives and translates an outbound SYN for the connection the NAT MUST silently drop the original unsolicited inbound SYN packet". We wrote codes for such case in nat_handle_tcp function in sr_router.c <br>
 ```C
+int nat_handle_tcp(struct sr_instance* sr, uint8_t *ip_packet, unsigned int ip_packet_len, int is_to_nat) {
+  ..........
+  else if (is_to_nat == 1) {
+    printf("[NAT]: external -> internal\n");
+    /* check whether it is unsolicited inbound (external -> internal) SYN. If it is, wait for six seconds.
+     * During this interval, if the NAT receives and translate outbound (internal -> external) SYN,
+     * the NAT should silently drop the inbound SYN */
+    if (tcp_header->SYN == 1 && tcp_header->ACK == 0) {
+      printf("[NAT]: inboud SYN\n");
+      /* if mapping is valid, check its list of connections*/
+      mapping = sr_nat_lookup_external(&sr->nat, ntohs(tcp_header->dst_port), nat_mapping_tcp);
+      if (mapping) {
+        sr_nat_update_connection(&sr->nat, mapping, (uint8_t *)ip_packet, ip_packet_len, 1);
+        return -1;
+      }
+      /* if no mapping, insert this SYN packet into the unsolicitied packet list */
+      else {
+        sr_nat_insert_unsolicited_packet(&(sr->nat), (uint8_t *)ip_packet, ip_packet_len);
+        return -1;
+      }
+    }
+   .............
+```
+2. We were able to find a proper set of TCP commands to test TCP Established connection idle-timeout and Transitory connection idle-timeout, but we wrote code for such cases in sr_nat_timeout function in sr_nat.c <br>
+```C
+........
 while (cur_conn != NULL) {
   if (cur_conn->state == ESTAB && difftime(curtime,cur_conn->last_updated) > nat->tcp_estab_idle_to) {
       pre_conn->next = cur_conn->next;
@@ -414,4 +444,5 @@ while (cur_conn != NULL) {
     cur_conn = cur_conn->next;          
   }
 }
+.........
 ```
